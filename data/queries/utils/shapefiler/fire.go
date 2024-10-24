@@ -10,9 +10,8 @@ import (
 	orbjson "github.com/paulmach/orb/geojson"
 )
 
-func ParseZones(scanner *shapefile.ZipScanner, t time.Time) error {
-
-	slog.Info("Parsing zones...")
+func ParseFire(scanner *shapefile.ZipScanner, t time.Time) error {
+	slog.Info("Parsing fire zones...")
 
 	// Start the scanner
 	err := scanner.Scan()
@@ -49,7 +48,7 @@ func ParseZones(scanner *shapefile.ZipScanner, t time.Time) error {
 		stateAttr, _ := record.Attributes.Field("STATE")
 		state := fmt.Sprintf("%v", stateAttr.Value())
 
-		zonename, _ := record.Attributes.Field("SHORTNAME")
+		zonename, _ := record.Attributes.Field("NAME")
 		name := fmt.Sprintf("%v", zonename.Value())
 
 		lonAttr, _ := record.Attributes.Field("LON")
@@ -75,7 +74,7 @@ func ParseZones(scanner *shapefile.ZipScanner, t time.Time) error {
 		}
 
 		ugc := UGC{
-			ID:        state + "Z" + zone,
+			ID:        state + "F" + zone,
 			Name:      name,
 			State:     fmt.Sprintf("state:%s", state),
 			Number:    zone,
@@ -85,7 +84,7 @@ func ParseZones(scanner *shapefile.ZipScanner, t time.Time) error {
 			Geometry:  *mpolygon,
 			CWA:       cwaArr,
 			IsMarine:  false,
-			IsFire:    false,
+			IsFire:    true,
 			ValidFrom: t,
 			ValidTo:   nil,
 		}
@@ -112,12 +111,12 @@ func ParseZones(scanner *shapefile.ZipScanner, t time.Time) error {
 		out += surql
 	}
 
-	err = WriteToFile("zones.surql", []byte(out))
+	err = WriteToFile("firezones.surql", []byte(out))
 	if err != nil {
 		return err
 	}
 
-	slog.Info(fmt.Sprintf("Wrote %d records to zones.surql\n", len(ugcRecords)))
+	slog.Info(fmt.Sprintf("Wrote %d records to firezones.surql\n", len(ugcRecords)))
 
 	collection := orbjson.NewFeatureCollection()
 
@@ -141,9 +140,9 @@ func ParseZones(scanner *shapefile.ZipScanner, t time.Time) error {
 		return err
 	}
 
-	WriteToFile("zones.geojson", data)
+	WriteToFile("firezones.geojson", data)
 
-	slog.Info(fmt.Sprintf("Wrote %d records to zones.geojson\n", len(ugcRecords)))
+	slog.Info(fmt.Sprintf("Wrote %d records to firezones.geojson\n", len(ugcRecords)))
 
 	return nil
 }

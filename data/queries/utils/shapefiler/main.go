@@ -127,16 +127,14 @@ func Parse(filename string) error {
 		err = ParseZones(scanner, t)
 	case "mz":
 		err = ParseMarineZones(scanner, t)
+	case "fz":
+		err = ParseFire(scanner, t)
 	}
 
 	return err
 }
 
 func ParseWFO(filename string) error {
-	return nil
-}
-
-func ParseFire(filename string) error {
 	return nil
 }
 
