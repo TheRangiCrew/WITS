@@ -8,20 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"time"
-
-	"github.com/paulmach/orb"
 )
-
-type CWA struct {
-	ID        string       `json:"id"`
-	Code      string       `json:"code"`
-	Name      string       `json:"name"`
-	Centre    orb.Point    `json:"centre"`
-	Geometry  orb.Geometry `json:"geometry"`
-	Area      float64      `json:"area"`
-	WFO       string       `json:"wfo"`
-	ValidFrom time.Time    `json:"valid_from"`
-}
 
 var floatType = reflect.TypeOf(float64(0))
 
@@ -129,6 +116,8 @@ func Parse(filename string) error {
 		err = ParseMarineZones(scanner, t)
 	case "fz":
 		err = ParseFire(scanner, t)
+	case "w_":
+		err = ParseCWA(scanner, t)
 	}
 
 	return err

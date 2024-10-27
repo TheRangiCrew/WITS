@@ -2,11 +2,25 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/everystreet/go-shapefile"
+	"github.com/paulmach/orb"
 	orbjson "github.com/paulmach/orb/geojson"
 )
+
+type CWA struct {
+	ID        string       `json:"id"`
+	Code      string       `json:"code"`
+	Name      string       `json:"name"`
+	Centre    orb.Point    `json:"centre"`
+	Geometry  orb.Geometry `json:"geometry"`
+	Area      float64      `json:"area"`
+	WFO       string       `json:"wfo"`
+	Region    string       `json:"region"`
+	ValidFrom time.Time    `json:"valid_from"`
+}
 
 func ParseCWA(scanner *shapefile.ZipScanner, t time.Time) error {
 
@@ -56,6 +70,9 @@ func ParseCWA(scanner *shapefile.ZipScanner, t time.Time) error {
 
 		location := [2]float64{lon, lat}
 
+		regionAttr, _ := record.Attributes.Field("REGION")
+		region := fmt.Sprintf("%v", regionAttr.Value())
+
 		cwa := CWA{
 			ID:        fmt.Sprintf("cwa:%s", id),
 			Code:      id,
@@ -64,6 +81,7 @@ func ParseCWA(scanner *shapefile.ZipScanner, t time.Time) error {
 			Geometry:  *mpolygon,
 			Area:      0.0,
 			WFO:       fmt.Sprintf("office:%s", id),
+			Region:    region,
 			ValidFrom: t,
 		}
 
@@ -92,10 +110,37 @@ func ParseCWA(scanner *shapefile.ZipScanner, t time.Time) error {
 			return err
 		}
 
-		out += fmt.Sprintf("INSERT INTO cwa { id: %s, code: \"%s\", name: \"%s\", centre: %s, geometry: %s, wfo: %s, valid_from: %s};\n", cwa.ID, cwa.Code, cwa.Name, string(centre), string(geometry), cwa.WFO, DateToString(&cwa.ValidFrom))
+		out += fmt.Sprintf("INSERT INTO cwa { id: %s, code: \"%s\", name: \"%s\", centre: %s, geometry: %s, wfo: %s, region: \"%s\", valid_from: %s};\n", cwa.ID, cwa.Code, cwa.Name, string(centre), string(geometry), cwa.WFO, cwa.Region, DateToString(&cwa.ValidFrom))
 	}
 
 	err = WriteToFile("cwa.surql", []byte(out))
+	if err != nil {
+		return err
+	}
+
+	slog.Info(fmt.Sprintf("Wrote %d records to cwa.surql\n", len(cwaRecords)))
+
+	collection := orbjson.NewFeatureCollection()
+
+	for _, cwa := range cwaRecords {
+		feature := orbjson.NewFeature(cwa.Geometry)
+		feature.Properties = map[string]interface{}{
+			"id":     cwa.ID,
+			"name":   cwa.Name,
+			"wfo":    cwa.WFO,
+			"region": cwa.Region,
+		}
+		collection.Append(feature)
+	}
+
+	data, err := collection.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	WriteToFile("cwa.geojson", data)
+
+	slog.Info(fmt.Sprintf("Wrote %d records to cwa.geojson\n", len(cwaRecords)))
 
 	return err
 }
