@@ -1,0 +1,4 @@
+.env
+*.zip
+*.geojson
+*.mbtiles

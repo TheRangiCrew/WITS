@@ -1,0 +1,69 @@
+172 
+WWUS54 KOUN 280139
+SVSOUN
+
+Severe Weather Statement
+National Weather Service Norman OK
+839 PM CDT Sat Apr 27 2024
+
+OKC031-137-280147-
+/O.CAN.KOUN.TO.W.0044.000000T0000Z-240428T0145Z/
+Comanche OK-Stephens OK-
+839 PM CDT Sat Apr 27 2024
+
+...THE TORNADO WARNING FOR NORTHEASTERN COMANCHE AND NORTHWESTERN
+STEPHENS COUNTIES IS CANCELLED...
+
+The tornadic thunderstorm which prompted the warning has moved into 
+Grady County. Therefore, the warning has been cancelled for Comanche 
+and Stephens County. However a severe thunderstorm warning remains 
+in effect for Stephens and far eastern Comanche County.
+
+LAT...LON 3474 9800 3482 9802 3491 9793 3488 9778
+      3475 9767 3468 9776 3468 9793
+TIME...MOT...LOC 0137Z 212DEG 53KT 3479 9785 
+
+$$
+
+OKC051-280145-
+/O.CON.KOUN.TO.W.0044.000000T0000Z-240428T0145Z/
+Grady OK-
+839 PM CDT Sat Apr 27 2024
+
+...A TORNADO WARNING REMAINS IN EFFECT UNTIL 845 PM CDT FOR SOUTHERN
+GRADY COUNTY...
+
+At 837 PM CDT, a severe thunderstorm capable of producing a tornado
+was located 5 miles east of Rush Springs, moving northeast at 60 mph.
+
+HAZARD...Tornado and half dollar size hail.
+
+SOURCE...Radar indicated rotation.
+
+IMPACT...Flying debris will be dangerous to those caught without 
+         shelter. Mobile homes will be damaged or destroyed. Damage 
+         to roofs, windows, and vehicles will occur.  Tree damage is 
+         likely.
+
+Locations impacted include...
+Rush Springs, Agawam, and Cox City.
+
+PRECAUTIONARY/PREPAREDNESS ACTIONS...
+
+TAKE COVER NOW! Move to a storm shelter, safe room, or an interior
+room on the lowest floor of a sturdy building. Avoid windows. If you
+are outdoors, in a mobile home, or in a vehicle, move to the closest
+substantial shelter and protect yourself from flying debris.
+
+&&
+
+LAT...LON 3474 9800 3482 9802 3491 9793 3488 9778
+      3475 9767 3468 9776 3468 9793
+TIME...MOT...LOC 0137Z 212DEG 53KT 3479 9785 
+
+TORNADO...RADAR INDICATED
+MAX HAIL SIZE...1.25 IN
+
+$$
+
+..speg.
