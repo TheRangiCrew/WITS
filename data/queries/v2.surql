@@ -79,15 +79,6 @@ DEFINE FIELD IF NOT EXISTS wmo ON TABLE product TYPE {
     bbb: string
 };
 
--- Product Errors --
-DEFINE TABLE IF NOT EXISTS product_error SCHEMAFULL TYPE NORMAL;
-
-DEFINE FIELD IF NOT EXISTS id ON TABLE product_error DEFAULT rand::uuid();
-DEFINE FIELD IF NOT EXISTS created_at ON TABLE product_error TYPE datetime DEFAULT time::now();
-DEFINE FIELD IF NOT EXISTS text ON TABLE product_error TYPE string;
-DEFINE FIELD IF NOT EXISTS product ON TABLE product_error TYPE option<record<product>>;
-DEFINE FIELD IF NOT EXISTS errors ON TABLE product_error TYPE array<string>;
-
 
 --------------------------------------------------
 ---- VTEC Products, Segments, and Static Data ----
@@ -244,6 +235,7 @@ DEFINE FIELD IF NOT EXISTS ugc ON TABLE warning TYPE array<record<ugc>>;
 
 DEFINE INDEX groupIndex ON TABLE warning COLUMNS group;
 
+
 ----------------------------------------
 ---- Severe Weather Watches/WWs ----
 ----------------------------------------
@@ -290,3 +282,20 @@ DEFINE FIELD IF NOT EXISTS watch_probability ON TABLE mcd TYPE int;
 
 -- RELATE MCD to WW --
 DEFINE TABLE IF NOT EXISTS mcd_watch SCHEMAFULL TYPE RELATION FROM mcd TO severe_watch ENFORCED;
+
+
+--------------
+---- Logs ----
+--------------
+-- Logs --
+DEFINE TABLE IF NOT EXISTS log TYPE NORMAL;
+
+DEFINE FIELD IF NOT EXISTS id ON TABLE log DEFAULT rand::uuid();
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE log TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS time ON TABLE log TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS level ON TABLE log TYPE string;
+DEFINE FIELD IF NOT EXISTS product ON TABLE log TYPE option<record<product>>;
+DEFINE FIELD IF NOT EXISTS awips ON TABLE log TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS wmo ON TABLE log TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS text ON TABLE log TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS message ON TABLE log TYPE string;
