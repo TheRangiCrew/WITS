@@ -107,7 +107,7 @@ DEFINE TABLE IF NOT EXISTS vtec_event SCHEMAFULL TYPE NORMAL;
 DEFINE FIELD IF NOT EXISTS id ON TABLE vtec_event TYPE 
 { event_number: int, phenomena: string, office: string, significance: string, year: int};
 DEFINE FIELD IF NOT EXISTS created_at ON TABLE vtec_event TYPE datetime DEFAULT time::now();
-DEFINE FIELD IF NOT EXISTS updated_at ON TABLE vtec_event TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at ON TABLE vtec_event TYPE datetime VALUE time::now();
 DEFINE FIELD IF NOT EXISTS issued ON TABLE vtec_event TYPE datetime;
 DEFINE FIELD IF NOT EXISTS start ON TABLE vtec_event TYPE datetime | null DEFAULT null;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE vtec_event TYPE datetime;
@@ -127,7 +127,7 @@ DEFINE TABLE IF NOT EXISTS vtec_ugc SCHEMAFULL TYPE RELATION FROM vtec_event TO 
 DEFINE FIELD IF NOT EXISTS id ON TABLE vtec_ugc TYPE
 { event_number: int, phenomena: string, office: string, significance: string, year: int, ugc: string};
 DEFINE FIELD IF NOT EXISTS created_at ON TABLE vtec_ugc TYPE datetime DEFAULT time::now();
-DEFINE FIELD IF NOT EXISTS updated_at ON TABLE vtec_ugc TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at ON TABLE vtec_ugc TYPE datetime VALUE time::now();
 DEFINE FIELD IF NOT EXISTS issued ON TABLE vtec_ugc TYPE datetime;
 DEFINE FIELD IF NOT EXISTS start ON TABLE vtec_ugc TYPE datetime | null DEFAULT null;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE vtec_ugc TYPE datetime;
