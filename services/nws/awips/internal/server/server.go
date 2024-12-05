@@ -21,26 +21,12 @@ type ServerData struct {
 }
 
 type Server struct {
-	nwws    *nwws.NWWS
-	DB      *surrealdb.DB
-	Data    *ServerData
-	queue   chan *nwws.Message
-	errChan chan error
+	DB   *surrealdb.DB
+	Data *ServerData
 }
 
-func Setup(config ServerConfig) (*Server, error) {
-	nwwsoi, err := nwws.New(&nwws.Config{
-		Server:   os.Getenv("NWWSOI_Server") + ":5222",
-		Room:     os.Getenv("NWWSOI_Room"),
-		User:     os.Getenv("NWWSOI_User"),
-		Pass:     os.Getenv("NWWSOI_Pass"),
-		Resource: os.Getenv("NWWSOI_Resource"),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	queue := make(chan *nwws.Message)
+func New(config ServerConfig) (*Server, error) {
+	godotenv.Load()
 
 	db, err := db.New(config.DB)
 	if err != nil {
@@ -48,11 +34,8 @@ func Setup(config ServerConfig) (*Server, error) {
 	}
 
 	server := Server{
-		nwws:    nwwsoi,
-		DB:      db,
-		Data:    &ServerData{},
-		queue:   queue,
-		errChan: make(chan error),
+		DB:   db,
+		Data: &ServerData{},
 	}
 
 	err = server.loadUGC()
@@ -63,29 +46,42 @@ func Setup(config ServerConfig) (*Server, error) {
 	return &server, nil
 }
 
-func Start(config ServerConfig) {
-	godotenv.Load()
-
-	server, err := Setup(config)
+func NWWS(config ServerConfig) {
+	server, err := New(config)
 	if err != nil {
 		slog.Error(err.Error())
 		return
 	}
 
-	go server.nwws.Start(server.queue)
+	nwwsoi, err := nwws.New(&nwws.Config{
+		Server:   os.Getenv("NWWSOI_Server") + ":5222",
+		Room:     os.Getenv("NWWSOI_Room"),
+		User:     os.Getenv("NWWSOI_User"),
+		Pass:     os.Getenv("NWWSOI_Pass"),
+		Resource: os.Getenv("NWWSOI_Resource"),
+	})
+	if err != nil {
+		slog.Error(err.Error())
+		return
+	}
+
+	queue := make(chan *nwws.Message)
+	errChan := make(chan error)
+
+	go nwwsoi.Start(queue)
 
 	go func() {
-		for message := range server.queue {
+		for message := range queue {
 			h, err := handler.New(server.DB, server.Data.UGC)
 			if err != nil {
-				server.errChan <- err
+				errChan <- err
 				return
 			}
 			go h.Handle(message.Text, message.ReceivedAt.UTC())
 		}
 	}()
 
-	for err := range server.errChan {
+	for err := range errChan {
 		slog.Error(err.Error())
 	}
 }

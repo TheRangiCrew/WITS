@@ -42,6 +42,7 @@ var serverCmd = &cobra.Command{
 				AsRoot:   RootAuth,
 			},
 		}
-		server.Start(auth)
+
+		server.NWWS(auth)
 	},
 }
