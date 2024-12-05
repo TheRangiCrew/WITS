@@ -443,13 +443,22 @@ func (handler *vtecHandler) vtecHistoryUGC() []*models.RecordID {
 			if handler.VTEC.Phenomena == "FW" {
 				ugcType = "F"
 			}
-			id := state.ID + ugcType + area
-			ugc := handler.Handler.UGCData[id]
-			if ugc.ID == nil {
-				handler.Logger.Warn(fmt.Sprintf("Could not find UGC %s", id))
-				continue
+			if area == "000" || area == "ALL" {
+				key := state.ID + ugcType
+				for k, ugc := range handler.UGCData {
+					if k[0:3] == key {
+						ugcs = append(ugcs, ugc.ID)
+					}
+				}
+			} else {
+				id := state.ID + ugcType + area
+				ugc := handler.UGCData[id]
+				if ugc.ID == nil {
+					handler.Logger.Warn(fmt.Sprintf("Could not find UGC %s", id))
+					continue
+				}
+				ugcs = append(ugcs, ugc.ID)
 			}
-			ugcs = append(ugcs, ugc.ID)
 		}
 	}
 
@@ -487,48 +496,36 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID) {
 	segment := handler.Segment
 	vtec := handler.VTEC
 
-	// Go through the UGCs and relate them to the event
-	for _, state := range segment.UGC.States {
-		for _, ugc := range state.Areas {
-			ugcType := state.Type
-			if handler.VTEC.Phenomena == "FW" {
-				ugcType = "F"
-			}
-			ugcString := state.ID + ugcType + ugc
-			ugcID := models.NewRecordID("ugc", ugcString)
+	records := handler.vtecHistoryUGC()
 
-			recordID := db.VTECUGCID{
-				EventNumber:  vtec.EventNumber,
-				Phenomena:    vtec.Phenomena,
-				Office:       vtec.WFO,
-				Significance: vtec.Significance,
-				Year:         handler.ParentID.Year,
-				UGC:          ugcString,
-			}
+	action := models.NewRecordID("vtec_action", vtec.Action)
 
-			id := models.NewRecordID("vtec_ugc", recordID)
-
-			action := models.NewRecordID("vtec_action", vtec.Action)
-
-			err := surrealdb.Relate(handler.DB, &surrealdb.Relationship{
-				In:       *parent.ID,
-				Out:      ugcID,
-				Relation: models.Table("vtec_ugc"),
-				Data: map[string]any{
-					"id":          &id,
-					"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
-					"issued":      &models.CustomDateTime{Time: product.Issued},
-					"start":       parent.Start,
-					"expires":     &models.CustomDateTime{Time: segment.UGC.Expires},
-					"end":         &models.CustomDateTime{Time: *vtec.End},
-					"end_initial": &models.CustomDateTime{Time: *vtec.End},
-					"action":      &action,
-					"latest":      historyID.RecordID(),
-				},
-			})
-			if err != nil {
-				handler.Logger.Error(fmt.Sprintf("error relating %s: %s", id.String(), err.Error()))
-			}
+	for _, id := range records {
+		err := surrealdb.Relate(handler.DB, &surrealdb.Relationship{
+			In:       *parent.ID,
+			Out:      *id,
+			Relation: models.Table("vtec_ugc"),
+			Data: map[string]any{
+				"id": models.NewRecordID("vtec_ugc", db.VTECUGCID{
+					EventNumber:  vtec.EventNumber,
+					Phenomena:    vtec.Phenomena,
+					Office:       vtec.WFO,
+					Significance: vtec.Significance,
+					Year:         handler.ParentID.Year,
+					UGC:          fmt.Sprintf("%v", id.ID),
+				}),
+				"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
+				"issued":      &models.CustomDateTime{Time: product.Issued},
+				"start":       parent.Start,
+				"expires":     &models.CustomDateTime{Time: segment.UGC.Expires},
+				"end":         &models.CustomDateTime{Time: *vtec.End},
+				"end_initial": &models.CustomDateTime{Time: *vtec.End},
+				"action":      &action,
+				"latest":      historyID.RecordID(),
+			},
+		})
+		if err != nil {
+			handler.Logger.Error(fmt.Sprintf("error relating %s: %s", id.String(), err.Error()))
 		}
 	}
 }
@@ -537,44 +534,35 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID) {
 	segment := handler.Segment
 	vtec := handler.VTEC
 
+	records := handler.vtecHistoryUGC()
+
 	ugcs := ""
 
-	for _, state := range segment.UGC.States {
-		for _, ugc := range state.Areas {
-			ugcType := state.Type
-			if handler.VTEC.Phenomena == "FW" {
-				ugcType = "F"
-			}
-			ugcString := state.ID + ugcType + ugc
-
-			recordID := db.VTECUGCID{
-				EventNumber:  vtec.EventNumber,
-				Phenomena:    vtec.Phenomena,
-				Office:       vtec.WFO,
-				Significance: vtec.Significance,
-				Year:         handler.ParentID.Year,
-				UGC:          ugcString,
-			}
-
-			ugcs += fmt.Sprintf("%s, ", recordID.String())
+	for _, ugc := range records {
+		id := db.VTECUGCID{
+			EventNumber:  vtec.EventNumber,
+			Phenomena:    vtec.Phenomena,
+			Office:       vtec.WFO,
+			Significance: vtec.Significance,
+			Year:         handler.ParentID.Year,
+			UGC:          fmt.Sprintf("%v", ugc.ID),
 		}
+		ugcs += fmt.Sprintf("%s, ", id.String())
 	}
 
 	ugcs = ugcs[:len(ugcs)-2]
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
-	updated := models.CustomDateTime{Time: time.Now()}
 	expires := models.CustomDateTime{Time: segment.UGC.Expires}
 	end := models.CustomDateTime{Time: *vtec.End}
 
 	res, err := surrealdb.Query[[]db.VTECUGC](handler.DB, fmt.Sprintf(`UPDATE %s MERGE {
-	updated_at: %s,
 	expires: %s,
 	end: %s,
 	action: %s,
 	latest: %s
-	}`, ugcs, updated.SurrealString(), expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
+	}`, ugcs, expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
 	if err != nil {
 		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
 		return
@@ -587,47 +575,37 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID) {
 }
 
 func (handler *vtecHandler) cancelUGC(historyID *db.VTECHistoryID) {
-	segment := handler.Segment
 	vtec := handler.VTEC
+
+	records := handler.vtecHistoryUGC()
 
 	ugcs := ""
 
-	for _, state := range segment.UGC.States {
-		for _, ugc := range state.Areas {
-			ugcType := state.Type
-			if handler.VTEC.Phenomena == "FW" {
-				ugcType = "F"
-			}
-			ugcString := state.ID + ugcType + ugc
-
-			recordID := db.VTECUGCID{
-				EventNumber:  vtec.EventNumber,
-				Phenomena:    vtec.Phenomena,
-				Office:       vtec.WFO,
-				Significance: vtec.Significance,
-				Year:         handler.ParentID.Year,
-				UGC:          ugcString,
-			}
-
-			ugcs += fmt.Sprintf("%s, ", recordID.String())
+	for _, ugc := range records {
+		id := db.VTECUGCID{
+			EventNumber:  vtec.EventNumber,
+			Phenomena:    vtec.Phenomena,
+			Office:       vtec.WFO,
+			Significance: vtec.Significance,
+			Year:         handler.ParentID.Year,
+			UGC:          fmt.Sprintf("%v", ugc.ID),
 		}
+		ugcs += fmt.Sprintf("%s, ", id.String())
 	}
 
 	ugcs = ugcs[:len(ugcs)-2]
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
-	updated := models.CustomDateTime{Time: time.Now()}
 	expires := models.CustomDateTime{Time: handler.Product.Issued}
 	end := models.CustomDateTime{Time: handler.Product.Issued}
 
 	res, err := surrealdb.Query[[]db.VTECUGC](handler.DB, fmt.Sprintf(`UPDATE %s MERGE {
-	updated_at: %s,
 	expires: %s,
 	end: %s,
 	action: %s,
 	latest: %s
-	}`, ugcs, updated.SurrealString(), expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
+	}`, ugcs, expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
 	if err != nil {
 		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
 		return
