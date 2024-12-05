@@ -1,85 +1,147 @@
 package handler
 
 import (
-	"fmt"
+	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/db"
+	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/logger"
 	"github.com/TheRangiCrew/go-nws/pkg/awips"
 	"github.com/surrealdb/surrealdb.go"
 )
 
-type Data struct {
-	UGC map[string]db.UGC
-}
-
 type Handler struct {
+	Logger  *logger.Logger
 	DB      *surrealdb.DB
-	Data    *Data
-	ErrChan chan error
+	UGCData map[string]db.UGC
+	ctx     context.Context
 }
 
-func New(config db.DBConfig) (*Handler, error) {
-	db, err := db.New(config)
-	if err != nil {
-		return nil, err
-	}
+func New(db *surrealdb.DB, ugcData map[string]db.UGC) (*Handler, error) {
+
+	l := logger.New(db)
 
 	handler := Handler{
+		Logger:  &l,
 		DB:      db,
-		Data:    &Data{},
-		ErrChan: make(chan error),
-	}
-
-	err = handler.LoadUGC()
-	if err != nil {
-		return nil, err
+		UGCData: ugcData,
+		ctx:     context.Background(),
 	}
 
 	return &handler, nil
 }
 
-func (handler *Handler) LoadUGC() error {
-	slog.Info("Getting UGC data")
-
-	// Get the latest UGC data
-	queryResult, err := surrealdb.Query[[]db.UGC](handler.DB, "SELECT * OMIT geometry, centre FROM ugc WHERE valid_to == null", map[string]interface{}{})
-	if err != nil {
-		return err
-	}
-
-	result := *queryResult
-
-	if len(result[0].Result) == 0 {
-		return fmt.Errorf("Received 0 UGC records")
-	}
-
-	data := map[string]db.UGC{}
-	for _, ugc := range result[0].Result {
-		data[ugc.ID.ID.(string)] = ugc
-	}
-
-	handler.Data.UGC = data
-
-	slog.Info("Retrieved UGC data")
-
-	return nil
-}
-
+// This is very similar to the go-nws AWIPS product parser. Duplicated since we need a slightly different workflow
 func (handler *Handler) Handle(text string, receivedAt time.Time) error {
-	product, err := awips.New(text)
+	// Get the WMO header
+	wmo, err := awips.ParseWMO(text)
 	if err != nil {
 		return err
 	}
 
-	if product.AWIPS.Product == "CAP" || product.AWIPS.Product == "WOU" {
+	handler.Logger.SetWMO(wmo.Original)
+
+	// TODO: Handle test communications, we can probably utilise them (WOUS99)
+	if wmo.Datatype == "WOUS99" || wmo.Datatype == "NTXX98" {
+		handler.Logger.Debug("Communication test message received. Ignoring")
 		return nil
+	}
+
+	// Find the issue time
+	issued, err := awips.GetIssuedTime(text)
+	if err != nil {
+		return err
+	}
+	if issued.IsZero() {
+		handler.Logger.Info("Product does not contain issue date. Defaulting to now (UTC)")
+		issued = time.Now().UTC()
+	}
+
+	// Get the AWIPS header
+	awipsHeader, _ := awips.ParseAWIPS(text)
+
+	if awipsHeader.Original == "" {
+		handler.Logger.Info("AWIPS header not found. Product will not be stored.")
+		return nil
+	} else {
+		handler.Logger.SetAWIPS(awipsHeader.Original)
+	}
+
+	// Segment the product
+	splits := strings.Split(text, "$$")
+
+	segments := []awips.TextProductSegment{}
+
+	for _, segment := range splits {
+		segment = strings.TrimSpace(segment)
+
+		// Assume the segment is the end of the product if it is shorter than 10 characters
+		if len(segment) < 20 {
+			continue
+		}
+
+		ugc, err := awips.ParseUGC(segment)
+		if err != nil {
+			handler.Logger.Error(err.Error())
+			continue
+		}
+		if ugc != nil {
+			ugc.Merge(issued)
+		}
+
+		// Find any VTECs that the segment may have
+		vtec, e := awips.ParseVTEC(segment)
+		if len(e) != 0 {
+			for _, er := range e {
+				handler.Logger.Error(er.Error())
+			}
+			continue
+		}
+
+		latlon, err := awips.ParseLatLon(text)
+		if err != nil {
+			handler.Logger.Error(err.Error())
+			continue
+		}
+
+		tags, e := awips.ParseTags(text)
+		if len(e) != 0 {
+			for _, er := range e {
+				handler.Logger.Error(er.Error())
+			}
+		}
+
+		segments = append(segments, awips.TextProductSegment{
+			Text:   segment,
+			VTEC:   vtec,
+			UGC:    ugc,
+			LatLon: latlon,
+			Tags:   tags,
+		})
+
+	}
+
+	product := &awips.TextProduct{
+		Text:     text,
+		WMO:      wmo,
+		AWIPS:    awipsHeader,
+		Issued:   issued,
+		Office:   awipsHeader.WFO,
+		Product:  awipsHeader.Product,
+		Segments: segments,
 	}
 
 	dbProduct, err := handler.TextProduct(product, receivedAt)
 	if err != nil {
 		return err
+	}
+
+	handler.Logger.SetProduct(*dbProduct.ID)
+
+	if product.AWIPS.Product == "CAP" || product.AWIPS.Product == "WOU" {
+		return nil
 	}
 
 	if product.HasVTEC() {
@@ -89,5 +151,24 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		}
 	}
 
+	err = handler.Logger.Save()
+	if err != nil {
+		slog.Error("error saving logs to database", "error", err.Error())
+	}
 	return err
 }
+
+// func appendContext(parent context.Context, attr slog.Attr) context.Context {
+// 	if parent == nil {
+// 		parent = context.Background()
+// 	}
+
+// 	if v, ok := parent.Value(slogFields).([]slog.Attr); ok {
+// 		v = append(v, attr)
+// 		return context.WithValue(parent, slogFields, v)
+// 	} else {
+// 		v := []slog.Attr{}
+// 		v = append(v, attr)
+// 		return context.WithValue(parent, slogFields, v)
+// 	}
+// }

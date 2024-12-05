@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/db"
@@ -29,7 +28,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, dbProduct *db.Product) 
 	for i, segment := range product.Segments {
 
 		if len(segment.VTEC) == 0 {
-			slog.Info(fmt.Sprintf("Product %s segment %d does not have VTECs. Skipping...", dbProduct.ID, i))
+			handler.Logger.Info(fmt.Sprintf("Product %s segment %d does not have VTECs. Skipping...", dbProduct.ID, i))
 			continue
 		}
 
@@ -104,7 +103,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, dbProduct *db.Product) 
 					// We have the parent record
 					if len(currentVTECEvents) > 1 {
 						// Somehow there are multiple events with the same ID. Should not be possible
-						slog.Warn(fmt.Sprintf("Found %d records for %s when there should be 1 or 0", len(currentVTECEvents), eventID.String()))
+						handler.Logger.Warn(fmt.Sprintf("Found %d records for %s when there should be 1 or 0", len(currentVTECEvents), eventID.String()))
 					}
 					parent = &currentVTECEvents[0]
 					parent.UpdatedAt = &models.CustomDateTime{Time: time.Now()}
@@ -159,18 +158,18 @@ func (handler *Handler) vtec(product *awips.TextProduct, dbProduct *db.Product) 
 		// Check if all the UGCs have expired
 		ugcRes, err := surrealdb.Query[[]db.VTECUGC](handler.DB, fmt.Sprintf("SELECT id, end, out FROM %s->vtec_ugc WHERE end > time::now()", id.String()), map[string]interface{}{})
 		if err != nil {
-			slog.Error("error getting expired UGCs: " + err.Error())
+			handler.Logger.Error("error getting expired UGCs: " + err.Error())
 			continue
 		}
 
 		// If all UGCs are expired then the event has ended
-		if len((*ugcRes)[0].Result) < 0 {
+		if len((*ugcRes)[0].Result) == 0 {
 			event.End = &models.CustomDateTime{Time: product.Issued}
 		}
 
-		_, err = surrealdb.Merge[db.VTECEvent](handler.DB, event.ID, event)
+		_, err = surrealdb.Merge[db.VTECEvent](handler.DB, *event.ID, event)
 		if err != nil {
-			slog.Error("error merging vtec_event: " + err.Error())
+			handler.Logger.Error("error merging vtec_event: " + err.Error())
 			continue
 		}
 	}
@@ -372,7 +371,7 @@ func (handler *vtecHandler) createVTECHistory() (*db.VTECHistoryID, error) {
 	if len((*currentWarnings)[0].Result) > 0 {
 		currentWarning := (*currentWarnings)[0].Result[0]
 
-		_, err := surrealdb.Merge[db.Warning](handler.DB, currentWarning.ID, map[string]interface{}{
+		_, err := surrealdb.Merge[db.Warning](handler.DB, *currentWarning.ID, map[string]interface{}{
 			"valid_to": historyRecord.Issued,
 		})
 		if err != nil {
@@ -414,9 +413,9 @@ func (handler *vtecHandler) createVTECHistory() (*db.VTECHistoryID, error) {
 		UGC:                   ugcs,
 	}
 
-	warning, err = surrealdb.Create[db.Warning, models.RecordID](handler.DB, *warningID.RecordID(), warning)
+	_, err = surrealdb.Create[db.Warning, models.RecordID](handler.DB, *warningID.RecordID(), warning)
 	if err != nil {
-		slog.Error(fmt.Sprintf("error creating warning %s: %s", warningID.String(), err.Error()))
+		handler.Logger.Error(fmt.Sprintf("error creating warning %s: %s", warningID.String(), err.Error()))
 	}
 
 	return &historyID, nil
@@ -445,9 +444,9 @@ func (handler *vtecHandler) vtecHistoryUGC() []*models.RecordID {
 				ugcType = "F"
 			}
 			id := state.ID + ugcType + area
-			ugc := handler.Data.UGC[id]
+			ugc := handler.Handler.UGCData[id]
 			if ugc.ID == nil {
-				slog.Warn(fmt.Sprintf("Could not find UGC %s", id))
+				handler.Logger.Warn(fmt.Sprintf("Could not find UGC %s", id))
 				continue
 			}
 			ugcs = append(ugcs, ugc.ID)
@@ -487,6 +486,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID) {
 	parent := handler.ParentRecord
 	segment := handler.Segment
 	vtec := handler.VTEC
+
 	// Go through the UGCs and relate them to the event
 	for _, state := range segment.UGC.States {
 		for _, ugc := range state.Areas {
@@ -516,6 +516,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID) {
 				Relation: models.Table("vtec_ugc"),
 				Data: map[string]any{
 					"id":          &id,
+					"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
 					"issued":      &models.CustomDateTime{Time: product.Issued},
 					"start":       parent.Start,
 					"expires":     &models.CustomDateTime{Time: segment.UGC.Expires},
@@ -526,7 +527,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID) {
 				},
 			})
 			if err != nil {
-				slog.Error(fmt.Sprintf("error relating %s: %s", id.String(), err.Error()))
+				handler.Logger.Error(fmt.Sprintf("error relating %s: %s", id.String(), err.Error()))
 			}
 		}
 	}
@@ -575,12 +576,12 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID) {
 	latest: %s
 	}`, ugcs, updated.SurrealString(), expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
 	if err != nil {
-		slog.Error("error updating VTEC UGC: " + err.Error())
+		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
 		return
 	}
 
 	if len((*res)[0].Result) == 0 {
-		slog.Info(fmt.Sprintf("Missing UGC relation for %s. Creating now.", &handler.ParentID))
+		handler.Logger.Info(fmt.Sprintf("Missing UGC relation for %s. Creating now.", &handler.ParentID))
 		handler.relateUGC(historyID)
 	}
 }
@@ -628,12 +629,12 @@ func (handler *vtecHandler) cancelUGC(historyID *db.VTECHistoryID) {
 	latest: %s
 	}`, ugcs, updated.SurrealString(), expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
 	if err != nil {
-		slog.Error("error updating VTEC UGC: " + err.Error())
+		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
 		return
 	}
 
 	if len((*res)[0].Result) == 0 {
-		slog.Info(fmt.Sprintf("Missing UGC relation for %s. Creating now.", &handler.ParentID))
+		handler.Logger.Info(fmt.Sprintf("Missing UGC relation for %s. Creating now.", &handler.ParentID))
 		handler.relateUGC(historyID)
 	}
 }

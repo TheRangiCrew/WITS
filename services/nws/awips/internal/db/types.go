@@ -97,15 +97,6 @@ type WMO struct {
 	BBB      string                `json:"bbb"`
 }
 
-// Product Errors
-type ProductErrors struct {
-	ID        *models.RecordID       `json:"id"`
-	CreatedAt *models.CustomDateTime `json:"created_at"`
-	Text      string                 `json:"text"`
-	Product   *models.RecordID       `json:"product,omitempty"`
-	Errors    []string               `json:"errors"`
-}
-
 // VTEC Phenomena
 type VTECPhenomena struct {
 	ID   *models.RecordID `json:"id"`
@@ -312,4 +303,17 @@ func (id *WarningID) String() string {
 func (id *WarningID) RecordID() *models.RecordID {
 	recordID := models.NewRecordID("warning", id)
 	return &recordID
+}
+
+// Product Errors
+type Log struct {
+	ID        *models.RecordID       `json:"id,omitempty"`
+	CreatedAt *models.CustomDateTime `json:"created_at,omitempty"`
+	Time      *models.CustomDateTime `json:"time"`
+	Level     string                 `json:"level"`
+	Product   *models.RecordID       `json:"product,omitempty"`
+	AWIPS     string                 `json:"awips,omitempty"`
+	WMO       string                 `json:"wmo,omitempty"`
+	Text      string                 `json:"text,omitempty"`
+	Message   string                 `json:"message"`
 }

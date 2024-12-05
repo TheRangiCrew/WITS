@@ -15,7 +15,6 @@ func init() {
 	serverCmd.Flags().StringVarP(&Namespace, "namespace", "n", "", "The database namespace to use")
 	serverCmd.Flags().StringVarP(&Database, "database", "d", "", "The database to use")
 	serverCmd.Flags().BoolVar(&RootAuth, "as-root", false, "Connect to the database using root credentials")
-
 }
 
 var Endpoint string
