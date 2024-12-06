@@ -23,3 +23,16 @@ func LatLonFromAwips(src awips.LatLon) db.LatLon {
 
 	return output
 }
+
+func PolygonFromAwips(src awips.PolygonFeature) models.GeometryPolygon {
+	line := models.GeometryLine{}
+	for _, i := range src.Coordinates[0] {
+		p := models.GeometryPoint{
+			Latitude:  i[0],
+			Longitude: i[1],
+		}
+		line = append(line, p)
+	}
+
+	return []models.GeometryLine{line}
+}
