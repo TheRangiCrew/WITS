@@ -317,3 +317,20 @@ type Log struct {
 	Text      string                 `json:"text,omitempty"`
 	Message   string                 `json:"message"`
 }
+
+type MCDID struct {
+	Number int `json:"number"`
+	Year   int `json:"year"`
+}
+
+type MCD struct {
+	ID               *models.RecordID        `json:"id,omitempty"`
+	CreatedAt        *models.CustomDateTime  `json:"created_at,omitempty"`
+	UpdatedAt        *models.CustomDateTime  `json:"updated_at,omitempty"`
+	Original         *models.RecordID        `json:"original"`
+	Issued           *models.CustomDateTime  `json:"issued"`
+	Expires          *models.CustomDateTime  `json:"expires"`
+	Concerning       string                  `json:"concerning"`
+	Polygon          *models.GeometryPolygon `json:"polygon"`
+	WatchProbability int                     `json:"watch_probability"`
+}
