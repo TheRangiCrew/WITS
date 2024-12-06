@@ -87,7 +87,12 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 			handler.Logger.Error(err.Error())
 			continue
 		}
+		expires := time.Now().UTC()
 		if ugc != nil {
+			expires = time.Date(issued.Year(), issued.Month(), ugc.Expires.Day(), ugc.Expires.Hour(), ugc.Expires.Minute(), 0, 0, time.UTC)
+			if ugc.Expires.Day() > wmo.Issued.Day() && ugc.Expires.Day() == 1 {
+				expires = expires.AddDate(0, 1, 0)
+			}
 			ugc.Merge(issued)
 		}
 
@@ -114,11 +119,12 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		}
 
 		segments = append(segments, awips.TextProductSegment{
-			Text:   segment,
-			VTEC:   vtec,
-			UGC:    ugc,
-			LatLon: latlon,
-			Tags:   tags,
+			Text:    segment,
+			VTEC:    vtec,
+			UGC:     ugc,
+			Expires: expires,
+			LatLon:  latlon,
+			Tags:    tags,
 		})
 
 	}
@@ -142,6 +148,13 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 
 	if product.AWIPS.Product == "CAP" || product.AWIPS.Product == "WOU" {
 		return nil
+	}
+
+	if product.AWIPS.Original == "SWOMCD" {
+		err := handler.mcd(product, dbProduct)
+		if err != nil {
+			return err
+		}
 	}
 
 	if product.HasVTEC() {

@@ -75,7 +75,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, dbProduct *db.Product) 
 					}
 					if vtec.End == nil {
 						// Use the expiry of the product for the end time
-						vtec.End = &product.Expires
+						vtec.End = &segment.Expires
 					}
 
 					res, err := surrealdb.Create[db.VTECEvent](handler.DB, models.Table("vtec_event"), db.VTECEvent{
