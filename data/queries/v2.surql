@@ -273,12 +273,13 @@ DEFINE FIELD IF NOT EXISTS polygon ON TABLE severe_watch TYPE geometry<Polygon>;
 DEFINE TABLE IF NOT EXISTS mcd SCHEMAFULL TYPE NORMAL;
 
 DEFINE FIELD IF NOT EXISTS id ON TABLE mcd TYPE
-{ number: int, issued: datetime };
+{ number: int, year: int };
+DEFINE FIELD IF NOT EXISTS issued ON TABLE mcd TYPE datetime;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE mcd TYPE datetime;
 DEFINE FIELD IF NOT EXISTS original ON TABLE mcd TYPE record<product>;
 DEFINE FIELD IF NOT EXISTS concerning ON TABLE mcd TYPE string;
 DEFINE FIELD IF NOT EXISTS polygon ON TABLE mcd TYPE geometry<Polygon>;
-DEFINE FIELD IF NOT EXISTS watch_probability ON TABLE mcd TYPE int;
+DEFINE FIELD IF NOT EXISTS watch_probability ON TABLE mcd TYPE option<int>;
 
 -- RELATE MCD to WW --
 DEFINE TABLE IF NOT EXISTS mcd_watch SCHEMAFULL TYPE RELATION FROM mcd TO severe_watch ENFORCED;
