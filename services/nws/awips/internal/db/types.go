@@ -289,15 +289,15 @@ type Warning struct {
 }
 
 type WarningID struct {
-	EventNumber  int                    `json:"event_number"`
-	Phenomena    string                 `json:"phenomena"`
-	Office       string                 `json:"office"`
-	Significance string                 `json:"significance"`
-	Time         *models.CustomDateTime `json:"time"`
+	EventNumber  int    `json:"event_number"`
+	Phenomena    string `json:"phenomena"`
+	Office       string `json:"office"`
+	Significance string `json:"significance"`
+	Sequence     int    `json:"sequence"`
 }
 
 func (id *WarningID) String() string {
-	return fmt.Sprintf(`warning:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', time: %s}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Time.SurrealString())
+	return fmt.Sprintf(`warning:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', sequence: %d}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Sequence)
 }
 
 func (id *WarningID) RecordID() *models.RecordID {
