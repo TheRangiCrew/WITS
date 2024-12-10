@@ -20,4 +20,4 @@ WORKDIR /
 
 COPY --from=build /awips /awips
 
-ENTRYPOINT [ "/awips", "server" ]
+ENTRYPOINT [ "/awips", "server", "--minlog", "1" ]
