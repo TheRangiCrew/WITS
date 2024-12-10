@@ -26,9 +26,9 @@ func New(config DBConfig) (*surrealdb.DB, error) {
 	} else {
 		_, err = db.SignIn(&surrealdb.Auth{
 			Namespace: config.Namespace,
-			Database:  config.Database,
-			Username:  config.Username,
-			Password:  config.Password,
+			// Database:  config.Database,
+			Username: config.Username,
+			Password: config.Password,
 		})
 	}
 	if err != nil {

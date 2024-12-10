@@ -29,7 +29,7 @@ func ParseText(filename string, dbConfig db.DBConfig) {
 		return
 	}
 
-	h, err := handler.New(server.DB, server.Data.UGC)
+	h, err := handler.New(server.DB, server.Data.UGC, server.MinLog)
 	if err != nil {
 		slog.Error(err.Error())
 		return

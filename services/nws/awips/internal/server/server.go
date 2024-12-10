@@ -8,12 +8,12 @@ import (
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/db"
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/handler"
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/nwws"
-	"github.com/joho/godotenv"
 	"github.com/surrealdb/surrealdb.go"
 )
 
 type ServerConfig struct {
-	DB db.DBConfig
+	DB     db.DBConfig
+	MinLog int
 }
 
 type ServerData struct {
@@ -21,21 +21,21 @@ type ServerData struct {
 }
 
 type Server struct {
-	DB   *surrealdb.DB
-	Data *ServerData
+	DB     *surrealdb.DB
+	Data   *ServerData
+	MinLog int
 }
 
 func New(config ServerConfig) (*Server, error) {
-	godotenv.Load()
-
 	db, err := db.New(config.DB)
 	if err != nil {
 		return nil, err
 	}
 
 	server := Server{
-		DB:   db,
-		Data: &ServerData{},
+		DB:     db,
+		Data:   &ServerData{},
+		MinLog: config.MinLog,
 	}
 
 	err = server.loadUGC()
@@ -72,7 +72,7 @@ func NWWS(config ServerConfig) {
 
 	go func() {
 		for message := range queue {
-			h, err := handler.New(server.DB, server.Data.UGC)
+			h, err := handler.New(server.DB, server.Data.UGC, server.MinLog)
 			if err != nil {
 				errChan <- err
 				return

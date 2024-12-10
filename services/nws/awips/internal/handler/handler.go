@@ -19,9 +19,9 @@ type Handler struct {
 	ctx     context.Context
 }
 
-func New(db *surrealdb.DB, ugcData map[string]db.UGC) (*Handler, error) {
+func New(db *surrealdb.DB, ugcData map[string]db.UGC, minLog int) (*Handler, error) {
 
-	l := logger.New(db)
+	l := logger.New(db, slog.Level(minLog))
 
 	handler := Handler{
 		Logger:  &l,
