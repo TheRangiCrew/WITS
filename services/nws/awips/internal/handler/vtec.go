@@ -386,7 +386,7 @@ func (handler *vtecHandler) createVTECHistory() (*db.VTECHistoryID, error) {
 		Phenomena:    historyID.Phenomena,
 		Office:       historyID.Office,
 		Significance: historyID.Significance,
-		Time:         &models.CustomDateTime{Time: time.Now().UTC()},
+		Sequence:     historyID.Sequence,
 	}
 
 	warning := &db.Warning{

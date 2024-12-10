@@ -195,7 +195,7 @@ DEFINE TABLE IF NOT EXISTS vtec_event_history SCHEMAFULL TYPE RELATION FROM vtec
 DEFINE TABLE IF NOT EXISTS warning SCHEMAFULL TYPE NORMAL;
 
 DEFINE FIELD IF NOT EXISTS id ON TABLE warning TYPE 
-{ event_number: int, phenomena: string, office: string, significance: string, time: datetime};
+{ event_number: int, phenomena: string, office: string, significance: string, sequence: int};
 DEFINE FIELD IF NOT EXISTS created_at ON TABLE warning TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS start ON TABLE warning TYPE datetime | null DEFAULT null;
 DEFINE FIELD IF NOT EXISTS group ON TABLE warning TYPE string;
