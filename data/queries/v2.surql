@@ -1,3 +1,7 @@
+DEFINE DATABASE IF NOT EXISTS AWIPS;
+
+USE DB AWIPS;
+
 --------------------------------
 ---- Geograhpic Identifiers ----
 --------------------------------
