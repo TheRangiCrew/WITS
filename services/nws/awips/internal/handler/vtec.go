@@ -54,9 +54,11 @@ func (handler *Handler) vtec(product *awips.TextProduct, dbProduct *db.Product) 
 
 			if parent == nil {
 
-				eventRes, err := surrealdb.Query[[]db.VTECEvent](handler.DB, fmt.Sprintf("SELECT * FROM %s\n", eventID.String()), map[string]interface{}{})
+				eventRes, err := surrealdb.Query[[]db.VTECEvent](handler.DB, "SELECT * FROM $id", map[string]interface{}{
+					"id": models.NewRecordID("vtec_event", eventID),
+				})
 				if err != nil {
-					return fmt.Errorf("retrieving current VTECs: %s", err)
+					return fmt.Errorf("error retrieving current VTECs: %s", err)
 				}
 
 				currentVTECEvents := (*eventRes)[0].Result
@@ -536,7 +538,7 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID) {
 
 	records := handler.vtecHistoryUGC()
 
-	ugcs := ""
+	ugcs := []models.RecordID{}
 
 	for _, ugc := range records {
 		id := db.VTECUGCID{
@@ -547,28 +549,26 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID) {
 			Year:         handler.ParentID.Year,
 			UGC:          fmt.Sprintf("%v", ugc.ID),
 		}
-		ugcs += fmt.Sprintf("%s, ", id.String())
+		ugcs = append(ugcs, models.NewRecordID("vtec_ugc", id))
 	}
-
-	ugcs = ugcs[:len(ugcs)-2]
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
 	expires := models.CustomDateTime{Time: segment.UGC.Expires}
 	end := models.CustomDateTime{Time: *vtec.End}
 
-	res, err := surrealdb.Query[[]db.VTECUGC](handler.DB, fmt.Sprintf(`UPDATE %s MERGE {
-	expires: %s,
-	end: %s,
-	action: %s,
-	latest: %s
-	}`, ugcs, expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
+	res, err := surrealdb.Merge[[]db.VTECUGC](handler.DB, ugcs, map[string]interface{}{
+		"expires": expires,
+		"end":     end,
+		"action":  action,
+		"latest":  historyID,
+	})
 	if err != nil {
 		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
 		return
 	}
 
-	if len((*res)[0].Result) == 0 {
+	if len(*res) == 0 {
 		handler.Logger.Info(fmt.Sprintf("Missing UGC relation for %s. Creating now.", &handler.ParentID))
 		handler.relateUGC(historyID)
 	}
@@ -579,7 +579,7 @@ func (handler *vtecHandler) cancelUGC(historyID *db.VTECHistoryID) {
 
 	records := handler.vtecHistoryUGC()
 
-	ugcs := ""
+	ugcs := []models.RecordID{}
 
 	for _, ugc := range records {
 		id := db.VTECUGCID{
@@ -590,28 +590,26 @@ func (handler *vtecHandler) cancelUGC(historyID *db.VTECHistoryID) {
 			Year:         handler.ParentID.Year,
 			UGC:          fmt.Sprintf("%v", ugc.ID),
 		}
-		ugcs += fmt.Sprintf("%s, ", id.String())
+		ugcs = append(ugcs, models.NewRecordID("vtec_ugc", id))
 	}
-
-	ugcs = ugcs[:len(ugcs)-2]
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
 	expires := models.CustomDateTime{Time: handler.Product.Issued}
 	end := models.CustomDateTime{Time: handler.Product.Issued}
 
-	res, err := surrealdb.Query[[]db.VTECUGC](handler.DB, fmt.Sprintf(`UPDATE %s MERGE {
-	expires: %s,
-	end: %s,
-	action: %s,
-	latest: %s
-	}`, ugcs, expires.SurrealString(), end.SurrealString(), action.SurrealString(), historyID.String()), map[string]interface{}{})
+	res, err := surrealdb.Merge[[]db.VTECUGC](handler.DB, ugcs, map[string]interface{}{
+		"expires": expires,
+		"end":     end,
+		"action":  action,
+		"latest":  historyID,
+	})
 	if err != nil {
 		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
 		return
 	}
 
-	if len((*res)[0].Result) == 0 {
+	if len(*res) == 0 {
 		handler.Logger.Info(fmt.Sprintf("Missing UGC relation for %s. Creating now.", &handler.ParentID))
 		handler.relateUGC(historyID)
 	}
