@@ -3,6 +3,7 @@ package logger
 import (
 	"context"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/db"
@@ -17,22 +18,24 @@ type LogRecord struct {
 }
 
 type Logger struct {
-	logger   *slog.Logger
-	db       *surrealdb.DB
-	minLevel slog.Level
-	Product  models.RecordID `json:"product,omitempty"`
-	AWIPS    string          `json:"awips,omitempty"`
-	WMO      string          `json:"wmo,omitempty"`
-	Text     string          `json:"text"`
-	Records  []LogRecord     `json:"-"`
+	logger  *slog.Logger
+	db      *surrealdb.DB
+	Product models.RecordID `json:"product,omitempty"`
+	AWIPS   string          `json:"awips,omitempty"`
+	WMO     string          `json:"wmo,omitempty"`
+	Text    string          `json:"text"`
+	Records []LogRecord     `json:"-"`
 }
 
-func New(db *surrealdb.DB) Logger {
+func New(db *surrealdb.DB, level slog.Level) Logger {
+
+	opts := &slog.HandlerOptions{
+		Level: level,
+	}
 
 	logger := Logger{
-		logger:   slog.Default(),
-		db:       db,
-		minLevel: slog.LevelInfo,
+		logger: slog.New(slog.NewTextHandler(os.Stdout, opts)),
+		db:     db,
 	}
 
 	return logger
@@ -40,7 +43,6 @@ func New(db *surrealdb.DB) Logger {
 }
 
 func (logger *Logger) Enabled(level slog.Level) bool {
-	logger.minLevel = level
 	return logger.logger.Enabled(context.TODO(), level)
 }
 
@@ -73,7 +75,7 @@ func (logger *Logger) Save() error {
 	logs := []db.Log{}
 
 	for _, record := range logger.Records {
-		if record.Level < logger.minLevel {
+		if !logger.logger.Enabled(context.TODO(), record.Level) {
 			continue
 		}
 
