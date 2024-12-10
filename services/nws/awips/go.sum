@@ -1,3 +1,5 @@
+github.com/TheRangiCrew/go-nws v0.0.0-20241206112157-d8fd9fbd4be3 h1:u2UkKxwlnz5BJNByK+xZWqfzpBuYWVssL1WSkCeemSc=
+github.com/TheRangiCrew/go-nws v0.0.0-20241206112157-d8fd9fbd4be3/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -5,8 +7,6 @@ github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
 github.com/gofrs/uuid v4.4.0+incompatible h1:3qXRTX8/NbyulANqlc0lchS1gqAVxRgsuW1YrTJupqA=
 github.com/gofrs/uuid v4.4.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
-github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
-github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
@@ -24,8 +24,6 @@ github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsT
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/surrealdb/surrealdb.go v0.3.2 h1:ynBbD0onW+M4BXhZ1+dDdVnNcaqBqFlHaHCFnk8LgmQ=
 github.com/surrealdb/surrealdb.go v0.3.2/go.mod h1:A0zahuChOaJtvTm2lefQnV+6aJtgqNLm9TIdYhZbw1Q=
-github.com/surrealdb/surrealdb.go v1.0.0-beta.0.20241029001605-f8d60dd83bc3 h1:4ui2VwfgLSZhYUutN1YY4JgyGD5HSzPl8P76R3AdDfM=
-github.com/surrealdb/surrealdb.go v1.0.0-beta.0.20241029001605-f8d60dd83bc3/go.mod h1:FeN83bXg2rO0GJ8Tp1xufkh3uiAlfgjeyTgFDx76T9s=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 github.com/xmppo/go-xmpp v0.2.1 h1:8Bw6W6RNGTq6ajgMiKxn0iJKYt6Atef5Y0A5AkGWn9Q=
