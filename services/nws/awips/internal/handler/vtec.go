@@ -310,7 +310,8 @@ func (handler *vtecHandler) createVTECHistory() (*db.VTECHistoryID, error) {
 
 	expires := segment.UGC.Expires
 	if vtec.End == nil {
-		panic(fmt.Errorf("vtec.end is nil for %s", historyID.String()))
+		vtec.End = &handler.Segment.Expires
+		handler.Logger.Info("VTEC end time is nil. Defaulting to UGC expiry time.")
 	}
 	end := *vtec.End
 
