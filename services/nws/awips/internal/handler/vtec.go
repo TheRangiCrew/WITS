@@ -307,6 +307,9 @@ func (handler *vtecHandler) createVTECHistory() (*db.VTECHistoryID, error) {
 
 	// Any TML data
 	tml, err := handler.vtecTML()
+	if err != nil {
+		handler.Logger.Error("error parsing TML: " + err.Error())
+	}
 
 	expires := segment.UGC.Expires
 	if vtec.End == nil {
