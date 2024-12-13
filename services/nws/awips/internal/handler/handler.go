@@ -134,7 +134,7 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		WMO:      wmo,
 		AWIPS:    awipsHeader,
 		Issued:   issued,
-		Office:   awipsHeader.WFO,
+		Office:   wmo.Office,
 		Product:  awipsHeader.Product,
 		Segments: segments,
 	}

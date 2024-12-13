@@ -13,11 +13,11 @@ import (
 
 func (handler *Handler) TextProduct(product *awips.TextProduct, receivedAt time.Time) (*db.Product, error) {
 
-	issued := models.CustomDateTime{Time: product.Issued}
+	issued := models.CustomDateTime{Time: product.Issued.UTC()}
 
 	data := db.Product{
 		Product:    product.Product,
-		Issuer:     &models.RecordID{Table: "office", ID: product.Office},
+		Issuer:     &models.RecordID{Table: "office", ID: product.Office[1:]},
 		Text:       strings.ReplaceAll(product.Text, `"`, `\"`),
 		ReceivedAt: &models.CustomDateTime{Time: receivedAt},
 		WMO: db.WMO{
