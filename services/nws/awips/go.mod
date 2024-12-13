@@ -23,4 +23,4 @@ require (
 
 // replace github.com/surrealdb/surrealdb.go => ../../../../../surrealdb.go
 
-replace github.com/TheRangiCrew/go-nws => ../../../../go-nws
+// replace github.com/TheRangiCrew/go-nws => ../../../../go-nws
