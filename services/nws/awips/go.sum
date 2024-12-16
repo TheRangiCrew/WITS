@@ -1,7 +1,5 @@
-github.com/TheRangiCrew/go-nws v0.0.0-20241213015650-9b31a909936d h1:5BIuYqaGtWB16IxkmqMaT1aWRSVy1aZjOQ4neIRTH5E=
-github.com/TheRangiCrew/go-nws v0.0.0-20241213015650-9b31a909936d/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
-github.com/TheRangiCrew/go-nws v0.0.0-20241213115631-998e26e45cd4 h1:FjKIUKhiBSERhWXltLb5OqppDqlZUD5jj4n57lIMzh8=
-github.com/TheRangiCrew/go-nws v0.0.0-20241213115631-998e26e45cd4/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
+github.com/TheRangiCrew/go-nws v0.0.0-20241216134636-56bedd4d6e41 h1:71MH6wUs0xp/mnDLn13UjfvuMm+anSD1jw++GocHsjg=
+github.com/TheRangiCrew/go-nws v0.0.0-20241216134636-56bedd4d6e41/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -28,8 +26,8 @@ github.com/surrealdb/surrealdb.go v0.3.2 h1:ynBbD0onW+M4BXhZ1+dDdVnNcaqBqFlHaHCF
 github.com/surrealdb/surrealdb.go v0.3.2/go.mod h1:A0zahuChOaJtvTm2lefQnV+6aJtgqNLm9TIdYhZbw1Q=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
-github.com/xmppo/go-xmpp v0.2.7 h1:r18qi1Gxjrpsjn+5Xsy5pL9bhPMScYSabEgceTaCzAY=
-github.com/xmppo/go-xmpp v0.2.7/go.mod h1:b24GAaIpOqpxK7vYpZsMo11ReZ1qMBu3DPjkZXcqSpw=
+github.com/xmppo/go-xmpp v0.2.8 h1:IYSZFahfwsC9RJPsiZuLFQnOri2I5iacv+sswsqaSDk=
+github.com/xmppo/go-xmpp v0.2.8/go.mod h1:jYd0LiK1vwCpO8boRVqOk8Yn2pnDIjs5K7g7ryEeQdI=
 golang.org/x/crypto v0.31.0 h1:ihbySMvVjLAeSH1IbfcRTkD/iNscyz8rGzjF/E5hV6U=
 golang.org/x/crypto v0.31.0/go.mod h1:kDsLvtWBEx7MV9tJOj9bnXsPbxwJQ6csT/x4KIN4Ssk=
 golang.org/x/net v0.32.0 h1:ZqPmj8Kzc+Y6e0+skZsuACbx+wzMgo5MQsJh9Qd6aYI=
