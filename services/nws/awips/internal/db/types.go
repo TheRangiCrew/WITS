@@ -123,6 +123,7 @@ type VTECEvent struct {
 	ID           *models.RecordID       `json:"id,omitempty"`
 	CreatedAt    *models.CustomDateTime `json:"created_at,omitempty"`
 	UpdatedAt    *models.CustomDateTime `json:"updated_at,omitempty"`
+	Updates      int                    `json:"updates"`
 	Issued       *models.CustomDateTime `json:"issued"`
 	Start        *models.CustomDateTime `json:"start,omitempty"`
 	Expires      *models.CustomDateTime `json:"expires"`
@@ -147,6 +148,10 @@ type VTECEventID struct {
 
 func (id *VTECEventID) String() string {
 	return fmt.Sprintf(`vtec_event:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', year: %d}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Year)
+}
+
+func (id *VTECEventID) RecordID() models.RecordID {
+	return models.NewRecordID("vtec_event", id)
 }
 
 type VTECUGC struct {
@@ -261,31 +266,24 @@ type TML struct {
 	Original    string                `json:"original"`
 }
 
+// Warning
 type Warning struct {
-	ID                    *models.RecordID        `json:"id"`
-	CreatedAt             *models.CustomDateTime  `json:"created_at,omitempty"`
-	Group                 string                  `json:"group"`
-	Start                 *models.CustomDateTime  `json:"start,omitempty"`
-	Expires               *models.CustomDateTime  `json:"expires"`
-	End                   *models.CustomDateTime  `json:"end,omitempty"`
-	ValidFrom             *models.CustomDateTime  `json:"valid_from,omitempty"`
-	ValidTo               *models.CustomDateTime  `json:"valid_to,omitempty"`
-	Text                  string                  `json:"text"`
-	Title                 string                  `json:"title"`
-	Action                *models.RecordID        `json:"action"`
-	Phenomena             *models.RecordID        `json:"phenomena"`
-	Office                *models.RecordID        `json:"office"`
-	Significance          *models.RecordID        `json:"significance"`
-	PhenomenaSignificance string                  `json:"phenomena_significance"`
-	EventNumber           int                     `json:"event_number"`
-	VTEC                  VTEC                    `json:"vtec"`
-	HVTEC                 HVTEC                   `json:"h_vtec,omitempty"`
-	IsEmergency           bool                    `json:"is_emergency"`
-	IsPDS                 bool                    `json:"is_pds"`
-	Polygon               *models.GeometryPolygon `json:"polygon,omitempty"`
-	Tags                  map[string]string       `json:"tags"`
-	TML                   *TML                    `json:"tml,omitempty"`
-	UGC                   []*models.RecordID      `json:"ugc"`
+	ID           *models.RecordID       `json:"id,omitempty"`
+	CreatedAt    *models.CustomDateTime `json:"created_at,omitempty"`
+	UpdatedAt    *models.CustomDateTime `json:"updated_at,omitempty"`
+	Updates      int                    `json:"updates"`
+	Issued       *models.CustomDateTime `json:"issued"`
+	Start        *models.CustomDateTime `json:"start,omitempty"`
+	Expires      *models.CustomDateTime `json:"expires"`
+	End          *models.CustomDateTime `json:"end,omitempty"`
+	EndInitial   *models.CustomDateTime `json:"end_initial,omitempty"`
+	Phenomena    *models.RecordID       `json:"phenomena"`
+	Office       *models.RecordID       `json:"office"`
+	Significance *models.RecordID       `json:"significance"`
+	EventNumber  int                    `json:"event_number"`
+	Title        string                 `json:"title"`
+	IsEmergency  bool                   `json:"is_emergency"`
+	IsPDS        bool                   `json:"is_pds"`
 }
 
 type WarningID struct {
@@ -293,15 +291,89 @@ type WarningID struct {
 	Phenomena    string `json:"phenomena"`
 	Office       string `json:"office"`
 	Significance string `json:"significance"`
-	Sequence     int    `json:"sequence"`
+	Year         int    `json:"year"`
 }
 
 func (id *WarningID) String() string {
-	return fmt.Sprintf(`warning:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', sequence: %d}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Sequence)
+	return fmt.Sprintf(`warning:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', year: %d}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Year)
 }
 
-func (id *WarningID) RecordID() *models.RecordID {
-	recordID := models.NewRecordID("warning", id)
+func (id *WarningID) RecordID() models.RecordID {
+	return models.RecordID{
+		Table: "warning",
+		ID:    id,
+	}
+}
+
+type WarningUGC struct {
+	ID         *models.RecordID       `json:"id"`
+	CreatedAt  *models.CustomDateTime `json:"created_at,omitempty"`
+	UpdatedAt  *models.CustomDateTime `json:"updated_at,omitempty"`
+	In         *models.RecordID       `json:"in"`
+	Out        *models.RecordID       `json:"out"`
+	Issued     *models.CustomDateTime `json:"issued"`
+	Start      *models.CustomDateTime `json:"start,omitempty"`
+	Expires    *models.CustomDateTime `json:"expires"`
+	End        *models.CustomDateTime `json:"end,omitempty"`
+	EndInitial *models.CustomDateTime `json:"end_initial,omitempty"`
+	Action     *models.RecordID       `json:"action"`
+	Latest     *models.RecordID       `json:"latest"`
+}
+
+type WarningUGCID struct {
+	EventNumber  int    `json:"event_number"`
+	Phenomena    string `json:"phenomena"`
+	Office       string `json:"office"`
+	Significance string `json:"significance"`
+	Year         int    `json:"year"`
+	UGC          string `json:"ugc"`
+}
+
+func (id *WarningUGCID) String() string {
+	return fmt.Sprintf(`vtec_ugc:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', year: %d, ugc: '%s'}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Year, id.UGC)
+}
+
+// Warning History
+type WarningHistory struct {
+	ID           *models.RecordID        `json:"id"`
+	CreatedAt    *models.CustomDateTime  `json:"created_at,omitempty"`
+	Issued       *models.CustomDateTime  `json:"issued"`
+	Start        *models.CustomDateTime  `json:"start,omitempty"`
+	Expires      *models.CustomDateTime  `json:"expires"`
+	End          *models.CustomDateTime  `json:"end,omitempty"`
+	Original     string                  `json:"original"`
+	Title        string                  `json:"title"`
+	Action       *models.RecordID        `json:"action"`
+	Phenomena    *models.RecordID        `json:"phenomena"`
+	Office       *models.RecordID        `json:"office"`
+	Significance *models.RecordID        `json:"significance"`
+	EventNumber  int                     `json:"event_number"`
+	VTEC         VTEC                    `json:"vtec"`
+	HVTEC        HVTEC                   `json:"h_vtec,omitempty"`
+	IsEmergency  bool                    `json:"is_emergency"`
+	IsPDS        bool                    `json:"is_pds"`
+	Polygon      *models.GeometryPolygon `json:"polygon,omitempty"`
+	Tags         map[string]string       `json:"tags"`
+	TML          *TML                    `json:"tml,omitempty"`
+	Product      *models.RecordID        `json:"product"`
+	UGC          []*models.RecordID      `json:"ugc"`
+}
+
+type WarningHistoryID struct {
+	EventNumber  int    `json:"event_number"`
+	Phenomena    string `json:"phenomena"`
+	Office       string `json:"office"`
+	Significance string `json:"significance"`
+	Year         int    `json:"year"`
+	Sequence     int    `json:"sequence"`
+}
+
+func (id *WarningHistoryID) String() string {
+	return fmt.Sprintf(`warning_history:{event_number: %d, phenomena:'%s', office: '%s', significance: '%s', year: %d, sequence: %d}`, id.EventNumber, id.Phenomena, id.Office, id.Significance, id.Year, id.Sequence)
+}
+
+func (id *WarningHistoryID) RecordID() *models.RecordID {
+	recordID := models.NewRecordID("warning_history", id)
 	return &recordID
 }
 

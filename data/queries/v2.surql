@@ -112,6 +112,7 @@ DEFINE FIELD IF NOT EXISTS id ON TABLE vtec_event TYPE
 { event_number: int, phenomena: string, office: string, significance: string, year: int};
 DEFINE FIELD IF NOT EXISTS created_at ON TABLE vtec_event TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS updated_at ON TABLE vtec_event TYPE datetime VALUE time::now();
+DEFINE FIELD IF NOT EXISTS updates ON TABLE vtec_event TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS issued ON TABLE vtec_event TYPE datetime;
 DEFINE FIELD IF NOT EXISTS start ON TABLE vtec_event TYPE datetime | null DEFAULT null;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE vtec_event TYPE datetime;
@@ -191,27 +192,64 @@ DEFINE FIELD IF NOT EXISTS ugc ON TABLE vtec_history TYPE array<record<ugc>>;
 -- RELATE VTEC Events to VTEC History --
 DEFINE TABLE IF NOT EXISTS vtec_event_history SCHEMAFULL TYPE RELATION FROM vtec_event TO vtec_history ENFORCED;
 
+
+------------------
+---- Warnings ----
+------------------
 -- Warnings --
 DEFINE TABLE IF NOT EXISTS warning SCHEMAFULL TYPE NORMAL;
 
 DEFINE FIELD IF NOT EXISTS id ON TABLE warning TYPE 
-{ event_number: int, phenomena: string, office: string, significance: string, sequence: int};
+{ event_number: int, phenomena: string, office: string, significance: string, year: int };
 DEFINE FIELD IF NOT EXISTS created_at ON TABLE warning TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at ON TABLE warning TYPE datetime VALUE time::now();
+DEFINE FIELD IF NOT EXISTS updates ON TABLE warning TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS start ON TABLE warning TYPE datetime | null DEFAULT null;
-DEFINE FIELD IF NOT EXISTS group ON TABLE warning TYPE string;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE warning TYPE datetime;
 DEFINE FIELD IF NOT EXISTS end ON TABLE warning TYPE datetime | null DEFAULT null;
-DEFINE FIELD IF NOT EXISTS valid_from ON TABLE warning TYPE datetime DEFAULT time::now();
-DEFINE FIELD IF NOT EXISTS valid_to ON TABLE warning TYPE datetime DEFAULT time::now() + 24h;
-DEFINE FIELD IF NOT EXISTS text ON TABLE warning TYPE string;
-DEFINE FIELD IF NOT EXISTS title ON TABLE warning TYPE string;
-DEFINE FIELD IF NOT EXISTS action ON TABLE warning TYPE record<vtec_action>;
+DEFINE FIELD IF NOT EXISTS end_initial ON TABLE warning TYPE datetime DEFAULT time::now() + 24h;
 DEFINE FIELD IF NOT EXISTS phenomena ON TABLE warning TYPE record<vtec_phenomena>;
 DEFINE FIELD IF NOT EXISTS office ON TABLE warning TYPE record<office>;
 DEFINE FIELD IF NOT EXISTS significance ON TABLE warning TYPE record<vtec_significance>;
-DEFINE FIELD IF NOT EXISTS phenomena_significance ON TABLE warning TYPE string;
 DEFINE FIELD IF NOT EXISTS event_number ON TABLE warning TYPE int;
-DEFINE FIELD IF NOT EXISTS vtec ON TABLE warning TYPE {
+DEFINE FIELD IF NOT EXISTS title ON TABLE warning TYPE string;
+DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning TYPE bool;
+DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning TYPE bool;
+
+
+-- Warning UGC --
+DEFINE TABLE IF NOT EXISTS warning_ugc SCHEMAFULL TYPE RELATION FROM warning TO ugc ENFORCED;
+
+DEFINE FIELD IF NOT EXISTS id ON TABLE warning_ugc TYPE
+{ event_number: int, phenomena: string, office: string, significance: string, year: int, ugc: string};
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE warning_ugc TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS updated_at ON TABLE warning_ugc TYPE datetime VALUE time::now();
+DEFINE FIELD IF NOT EXISTS issued ON TABLE warning_ugc TYPE datetime;
+DEFINE FIELD IF NOT EXISTS start ON TABLE warning_ugc TYPE datetime | null DEFAULT null;
+DEFINE FIELD IF NOT EXISTS expires ON TABLE warning_ugc TYPE datetime;
+DEFINE FIELD IF NOT EXISTS end ON TABLE warning_ugc TYPE datetime | null DEFAULT null;
+DEFINE FIELD IF NOT EXISTS end_initial ON TABLE warning_ugc TYPE datetime | null DEFAULT null;
+DEFINE FIELD IF NOT EXISTS action ON TABLE warning_ugc TYPE record<vtec_action>;
+DEFINE FIELD IF NOT EXISTS latest ON TABLE warning_ugc TYPE record<warning_history>;
+
+-- Warning History --
+DEFINE TABLE IF NOT EXISTS warning_history SCHEMAFULL TYPE NORMAL;
+
+DEFINE FIELD IF NOT EXISTS id ON TABLE warning_history TYPE
+{ event_number: int, phenomena: string, office: string, significance: string, year: int, sequence: int};
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE warning_history TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS issued ON TABLE warning_history TYPE datetime;
+DEFINE FIELD IF NOT EXISTS start ON TABLE warning_history TYPE datetime | null DEFAULT null;
+DEFINE FIELD IF NOT EXISTS expires ON TABLE warning_history TYPE datetime;
+DEFINE FIELD IF NOT EXISTS end ON TABLE warning_history TYPE datetime | null DEFAULT null;
+DEFINE FIELD IF NOT EXISTS original ON TABLE warning_history TYPE string;
+DEFINE FIELD IF NOT EXISTS title ON TABLE warning_history TYPE string;
+DEFINE FIELD IF NOT EXISTS action ON TABLE warning_history TYPE record<vtec_action>;
+DEFINE FIELD IF NOT EXISTS phenomena ON TABLE warning_history TYPE record<vtec_phenomena>;
+DEFINE FIELD IF NOT EXISTS office ON TABLE warning_history TYPE record<office>;
+DEFINE FIELD IF NOT EXISTS significance ON TABLE warning_history TYPE record<vtec_significance>;
+DEFINE FIELD IF NOT EXISTS event_number ON TABLE warning_history TYPE int;
+DEFINE FIELD IF NOT EXISTS vtec ON TABLE warning_history TYPE {
     class: "O" | "T" | "E" | "X",
     action: string,
     wfo: string,
@@ -222,12 +260,12 @@ DEFINE FIELD IF NOT EXISTS vtec ON TABLE warning TYPE {
     end: string
 };
 ---- TODO: Implement H-VTEC type
-DEFINE FIELD IF NOT EXISTS h_vtec ON TABLE warning FLEXIBLE TYPE option<object>;
-DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning TYPE bool;
-DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning TYPE bool;
-DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning TYPE option<geometry<Polygon>>;
-DEFINE FIELD IF NOT EXISTS tags ON TABLE warning FLEXIBLE TYPE option<object>;
-DEFINE FIELD IF NOT EXISTS tml ON TABLE warning TYPE option<{
+DEFINE FIELD IF NOT EXISTS h_vtec ON TABLE warning_history FLEXIBLE TYPE option<object>;
+DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning_history TYPE bool;
+DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning_history TYPE bool;
+DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning_history TYPE option<geometry<Polygon>>;
+DEFINE FIELD IF NOT EXISTS tags ON TABLE warning_history FLEXIBLE TYPE option<object>;
+DEFINE FIELD IF NOT EXISTS tml ON TABLE warning_history TYPE option<{
     direction: int,
     location: geometry<Point>,
     speed: int,
@@ -235,9 +273,11 @@ DEFINE FIELD IF NOT EXISTS tml ON TABLE warning TYPE option<{
     time: datetime,
     original: string
 }>;
-DEFINE FIELD IF NOT EXISTS ugc ON TABLE warning TYPE array<record<ugc>>;
+DEFINE FIELD IF NOT EXISTS product ON TABLE warning_history TYPE record<product>;
+DEFINE FIELD IF NOT EXISTS ugc ON TABLE warning_history TYPE array<record<ugc>>;
 
-DEFINE INDEX groupIndex ON TABLE warning COLUMNS group;
+-- RELATE Warning to Warning History --
+DEFINE TABLE IF NOT EXISTS warning_event_history SCHEMAFULL TYPE RELATION FROM warning TO warning_history ENFORCED;
 
 
 ----------------------------------------
