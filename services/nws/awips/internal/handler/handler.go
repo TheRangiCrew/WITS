@@ -158,10 +158,7 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 	}
 
 	if product.HasVTEC() {
-		err := handler.vtec(product, dbProduct)
-		if err != nil {
-			return err
-		}
+		handler.vtec(product, dbProduct.ID)
 	}
 
 	err = handler.Logger.Save()
