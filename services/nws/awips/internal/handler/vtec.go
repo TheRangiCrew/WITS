@@ -198,8 +198,8 @@ func (handler *vtecHandler) handle() {
 	case "EXT":
 		fallthrough
 	case "EXB":
-		event.End.Time = *vtec.End
-		warning.End.Time = *vtec.End
+		event.End.Time = end
+		warning.End.Time = end
 		event.Expires.Time = segment.UGC.Expires
 		warning.Expires.Time = segment.UGC.Expires
 	default:
