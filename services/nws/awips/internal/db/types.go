@@ -268,22 +268,22 @@ type TML struct {
 
 // Warning
 type Warning struct {
-	ID           *models.RecordID       `json:"id,omitempty"`
-	CreatedAt    *models.CustomDateTime `json:"created_at,omitempty"`
-	UpdatedAt    *models.CustomDateTime `json:"updated_at,omitempty"`
-	Updates      int                    `json:"updates"`
-	Issued       *models.CustomDateTime `json:"issued"`
-	Start        *models.CustomDateTime `json:"start,omitempty"`
-	Expires      *models.CustomDateTime `json:"expires"`
-	End          *models.CustomDateTime `json:"end,omitempty"`
-	EndInitial   *models.CustomDateTime `json:"end_initial,omitempty"`
-	Phenomena    *models.RecordID       `json:"phenomena"`
-	Office       *models.RecordID       `json:"office"`
-	Significance *models.RecordID       `json:"significance"`
-	EventNumber  int                    `json:"event_number"`
-	Title        string                 `json:"title"`
-	IsEmergency  bool                   `json:"is_emergency"`
-	IsPDS        bool                   `json:"is_pds"`
+	ID           *models.RecordID        `json:"id,omitempty"`
+	CreatedAt    *models.CustomDateTime  `json:"created_at,omitempty"`
+	UpdatedAt    *models.CustomDateTime  `json:"updated_at,omitempty"`
+	Updates      int                     `json:"updates"`
+	Issued       *models.CustomDateTime  `json:"issued"`
+	Start        *models.CustomDateTime  `json:"start,omitempty"`
+	Expires      *models.CustomDateTime  `json:"expires"`
+	End          *models.CustomDateTime  `json:"end,omitempty"`
+	Phenomena    *models.RecordID        `json:"phenomena"`
+	Office       *models.RecordID        `json:"office"`
+	Significance *models.RecordID        `json:"significance"`
+	EventNumber  int                     `json:"event_number"`
+	Title        string                  `json:"title"`
+	IsEmergency  bool                    `json:"is_emergency"`
+	IsPDS        bool                    `json:"is_pds"`
+	Polygon      *models.GeometryPolygon `json:"polygon,omitempty"`
 }
 
 type WarningID struct {
@@ -348,8 +348,6 @@ type WarningHistory struct {
 	Office       *models.RecordID        `json:"office"`
 	Significance *models.RecordID        `json:"significance"`
 	EventNumber  int                     `json:"event_number"`
-	VTEC         VTEC                    `json:"vtec"`
-	HVTEC        HVTEC                   `json:"h_vtec,omitempty"`
 	IsEmergency  bool                    `json:"is_emergency"`
 	IsPDS        bool                    `json:"is_pds"`
 	Polygon      *models.GeometryPolygon `json:"polygon,omitempty"`

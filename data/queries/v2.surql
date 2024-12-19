@@ -207,7 +207,6 @@ DEFINE FIELD IF NOT EXISTS updates ON TABLE warning TYPE int DEFAULT 0;
 DEFINE FIELD IF NOT EXISTS start ON TABLE warning TYPE datetime | null DEFAULT null;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE warning TYPE datetime;
 DEFINE FIELD IF NOT EXISTS end ON TABLE warning TYPE datetime | null DEFAULT null;
-DEFINE FIELD IF NOT EXISTS end_initial ON TABLE warning TYPE datetime DEFAULT time::now() + 24h;
 DEFINE FIELD IF NOT EXISTS phenomena ON TABLE warning TYPE record<vtec_phenomena>;
 DEFINE FIELD IF NOT EXISTS office ON TABLE warning TYPE record<office>;
 DEFINE FIELD IF NOT EXISTS significance ON TABLE warning TYPE record<vtec_significance>;
@@ -215,6 +214,7 @@ DEFINE FIELD IF NOT EXISTS event_number ON TABLE warning TYPE int;
 DEFINE FIELD IF NOT EXISTS title ON TABLE warning TYPE string;
 DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning TYPE bool;
 DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning TYPE bool;
+DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning TYPE option<geometry<Polygon>>;
 
 
 -- Warning UGC --
@@ -245,22 +245,7 @@ DEFINE FIELD IF NOT EXISTS end ON TABLE warning_history TYPE datetime | null DEF
 DEFINE FIELD IF NOT EXISTS original ON TABLE warning_history TYPE string;
 DEFINE FIELD IF NOT EXISTS title ON TABLE warning_history TYPE string;
 DEFINE FIELD IF NOT EXISTS action ON TABLE warning_history TYPE record<vtec_action>;
-DEFINE FIELD IF NOT EXISTS phenomena ON TABLE warning_history TYPE record<vtec_phenomena>;
 DEFINE FIELD IF NOT EXISTS office ON TABLE warning_history TYPE record<office>;
-DEFINE FIELD IF NOT EXISTS significance ON TABLE warning_history TYPE record<vtec_significance>;
-DEFINE FIELD IF NOT EXISTS event_number ON TABLE warning_history TYPE int;
-DEFINE FIELD IF NOT EXISTS vtec ON TABLE warning_history TYPE {
-    class: "O" | "T" | "E" | "X",
-    action: string,
-    wfo: string,
-    phenomena: string,
-    significance: string,
-    event_number: int,
-    start: string,
-    end: string
-};
----- TODO: Implement H-VTEC type
-DEFINE FIELD IF NOT EXISTS h_vtec ON TABLE warning_history FLEXIBLE TYPE option<object>;
 DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning_history TYPE bool;
 DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning_history TYPE bool;
 DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning_history TYPE option<geometry<Polygon>>;
