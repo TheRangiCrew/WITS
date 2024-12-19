@@ -113,13 +113,13 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 			continue
 		}
 
-		latlon, err := awips.ParseLatLon(text)
+		latlon, err := awips.ParseLatLon(segment)
 		if err != nil {
 			handler.Logger.Error(err.Error())
 			continue
 		}
 
-		tags, e := awips.ParseTags(text)
+		tags, e := awips.ParseTags(segment)
 		if len(e) != 0 {
 			for _, er := range e {
 				handler.Logger.Error(er.Error())
