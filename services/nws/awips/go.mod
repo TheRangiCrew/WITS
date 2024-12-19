@@ -7,7 +7,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/surrealdb/surrealdb.go v0.3.2
-	github.com/xmppo/go-xmpp v0.2.8
+	github.com/xmppo/go-xmpp v0.2.9
 )
 
 require (
@@ -18,7 +18,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.32.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 )
 
 // replace github.com/surrealdb/surrealdb.go => ../../../../../surrealdb.go
