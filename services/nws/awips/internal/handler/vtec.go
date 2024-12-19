@@ -280,6 +280,16 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
+	// The product expires at the UGC expiry time
+	expires := segment.UGC.Expires
+	var end time.Time
+	if vtec.End == nil {
+		end = expires
+		handler.Logger.Info("VTEC end time is nil. Defaulting to UGC expiry time.")
+	} else {
+		end = *vtec.End
+	}
+
 	vtecHistoryID := db.VTECHistoryID{
 		EventNumber:  vtec.EventNumber,
 		Phenomena:    vtec.Phenomena,
@@ -294,8 +304,8 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		ID:           vtecHistoryID.RecordID(),
 		Issued:       &models.CustomDateTime{Time: product.Issued},
 		Start:        event.Start,
-		Expires:      event.Expires,
-		End:          event.End,
+		Expires:      &models.CustomDateTime{Time: expires},
+		End:          &models.CustomDateTime{Time: end},
 		Original:     segment.Text,
 		Title:        vtec.Title(segment.IsEmergency()),
 		Action:       &action,
@@ -354,8 +364,8 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		ID:           warningHistoryID.RecordID(),
 		Issued:       &models.CustomDateTime{Time: product.Issued},
 		Start:        event.Start,
-		Expires:      event.Expires,
-		End:          event.End,
+		Expires:      &models.CustomDateTime{Time: expires},
+		End:          &models.CustomDateTime{Time: end},
 		Original:     segment.Text,
 		Title:        vtec.Title(segment.IsEmergency()),
 		Action:       &action,
