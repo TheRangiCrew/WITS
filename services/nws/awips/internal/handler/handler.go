@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -61,6 +63,12 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 
 	// Get the AWIPS header
 	awipsHeader, _ := awips.ParseAWIPS(text)
+
+	ignore := []string{"CAP", "HML"}
+	if slices.Contains(ignore, awipsHeader.Product) {
+		handler.Logger.Info(fmt.Sprintf("%s product is flagged. Ignoring", awipsHeader.Product))
+		return nil
+	}
 
 	if awipsHeader.Original == "" {
 		handler.Logger.Info("AWIPS header not found. Product will not be stored.")
