@@ -123,7 +123,6 @@ func (handler *Handler) vtec(product *awips.TextProduct, productID *models.Recor
 					Start:        &models.CustomDateTime{Time: *vtec.Start},
 					Expires:      &models.CustomDateTime{Time: segment.UGC.Expires},
 					End:          &models.CustomDateTime{Time: *vtec.End},
-					EndInitial:   &models.CustomDateTime{Time: *vtec.End},
 					Phenomena:    event.Phenomena,
 					Significance: event.Significance,
 					EventNumber:  vtec.EventNumber,
@@ -255,6 +254,7 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		output := util.LatLonFromAwips(*segment.LatLon)
 		latlon = &output
 		polygon = &latlon.Points
+		handler.warning.Polygon = polygon
 	}
 
 	// Generate UGC array
@@ -363,23 +363,13 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		Office:       event.Office,
 		Significance: event.Significance,
 		EventNumber:  vtec.EventNumber,
-		VTEC: db.VTEC{
-			Class:        vtec.Class,
-			Action:       vtec.Action,
-			WFO:          vtec.WFO,
-			Phenomena:    vtec.Phenomena,
-			Significance: vtec.Significance,
-			EventNumber:  vtec.EventNumber,
-			Start:        vtec.StartString,
-			End:          vtec.EndString,
-		},
-		IsEmergency: segment.IsEmergency(),
-		IsPDS:       segment.IsPDS(),
-		Polygon:     polygon,
-		Tags:        segment.Tags,
-		TML:         tml,
-		Product:     handler.productID,
-		UGC:         ugcs,
+		IsEmergency:  segment.IsEmergency(),
+		IsPDS:        segment.IsPDS(),
+		Polygon:      polygon,
+		Tags:         segment.Tags,
+		TML:          tml,
+		Product:      handler.productID,
+		UGC:          ugcs,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating %s: %s", warningHistoryID.String(), err.Error())
