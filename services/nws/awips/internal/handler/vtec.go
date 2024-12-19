@@ -474,7 +474,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 			},
 		})
 		if err != nil {
-			handler.Logger.Error(fmt.Sprintf("error relating %s: %s", id.String(), err.Error()))
+			handler.Logger.Error(fmt.Sprintf("error relating %s to %s: %s", id.String(), warning.ID.String(), err.Error()))
 		}
 	}
 }
