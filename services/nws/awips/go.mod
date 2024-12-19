@@ -3,7 +3,7 @@ module github.com/TheRangiCrew/WITS/services/nws/awips
 go 1.23.2
 
 require (
-	github.com/TheRangiCrew/go-nws v0.0.0-20241216134636-56bedd4d6e41
+	github.com/TheRangiCrew/go-nws v0.0.0-20241219224257-055802b1425f
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.8.1
 	github.com/surrealdb/surrealdb.go v0.3.2
