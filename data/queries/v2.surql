@@ -245,7 +245,9 @@ DEFINE FIELD IF NOT EXISTS end ON TABLE warning_history TYPE datetime | null DEF
 DEFINE FIELD IF NOT EXISTS original ON TABLE warning_history TYPE string;
 DEFINE FIELD IF NOT EXISTS title ON TABLE warning_history TYPE string;
 DEFINE FIELD IF NOT EXISTS action ON TABLE warning_history TYPE record<vtec_action>;
+DEFINE FIELD IF NOT EXISTS phenomena ON TABLE warning_history TYPE record<vtec_phenomena>;
 DEFINE FIELD IF NOT EXISTS office ON TABLE warning_history TYPE record<office>;
+DEFINE FIELD IF NOT EXISTS significance ON TABLE warning_history TYPE record<vtec_significance>;
 DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning_history TYPE bool;
 DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning_history TYPE bool;
 DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning_history TYPE option<geometry<Polygon>>;
