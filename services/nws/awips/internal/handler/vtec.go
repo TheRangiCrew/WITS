@@ -203,11 +203,11 @@ func (handler *vtecHandler) handle() {
 		warning.Expires.Time = segment.UGC.Expires
 	default:
 		// NEW and CON
-		if event.End.Time.Before(*vtec.End) {
-			event.End.Time = *vtec.End
+		if event.End.Time.Before(end) {
+			event.End.Time = end
 		}
-		if warning.End.Time.Before(*vtec.End) {
-			warning.End.Time = *vtec.End
+		if warning.End.Time.Before(end) {
+			warning.End.Time = end
 		}
 		if event.Expires.Time.Before(segment.Expires) {
 			event.Expires.Time = segment.Expires
