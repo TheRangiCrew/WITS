@@ -187,10 +187,10 @@ func (handler *vtecHandler) handle() {
 	case "CAN":
 		fallthrough
 	case "UPG":
-		event.Expires.Time = product.Issued
-		warning.Expires.Time = product.Issued
-		event.End.Time = product.Issued
-		warning.End.Time = product.Issued
+		event.Expires.Time = segment.UGC.Expires
+		warning.Expires.Time = segment.UGC.Expires
+		event.End.Time = product.Issued.UTC()
+		warning.End.Time = product.Issued.UTC()
 	case "EXP":
 		event.Expires.Time = end
 		warning.Expires.Time = end
@@ -282,13 +282,7 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 
 	// The product expires at the UGC expiry time
 	expires := segment.UGC.Expires
-	var end time.Time
-	if vtec.End == nil {
-		end = expires
-		handler.Logger.Info("VTEC end time is nil. Defaulting to UGC expiry time.")
-	} else {
-		end = *vtec.End
-	}
+	end := event.End
 
 	vtecHistoryID := db.VTECHistoryID{
 		EventNumber:  vtec.EventNumber,
@@ -305,7 +299,7 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		Issued:       &models.CustomDateTime{Time: product.Issued},
 		Start:        event.Start,
 		Expires:      &models.CustomDateTime{Time: expires},
-		End:          &models.CustomDateTime{Time: end},
+		End:          end,
 		Original:     segment.Text,
 		Title:        vtec.Title(segment.IsEmergency()),
 		Action:       &action,
@@ -365,7 +359,7 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		Issued:       &models.CustomDateTime{Time: product.Issued},
 		Start:        event.Start,
 		Expires:      &models.CustomDateTime{Time: expires},
-		End:          &models.CustomDateTime{Time: end},
+		End:          end,
 		Original:     segment.Text,
 		Title:        vtec.Title(segment.IsEmergency()),
 		Action:       &action,
@@ -514,19 +508,13 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID, warningID *db
 
 	// The product expires at the UGC expiry time
 	expires := segment.UGC.Expires
-	var end time.Time
-	if vtec.End == nil {
-		end = expires
-		handler.Logger.Info("VTEC end time is nil. Defaulting to UGC expiry time.")
-	} else {
-		end = *vtec.End
-	}
+	end := handler.event.End
 
 	res, err := surrealdb.Merge[[]db.VTECUGC](handler.DB, vtecUgcs, map[string]interface{}{
-		"expires": expires,
-		"end":     end,
+		"expires": expires.UTC(),
+		"end":     end.UTC(),
 		"action":  action,
-		"latest":  historyID,
+		"latest":  historyID.RecordID(),
 	})
 	if err != nil {
 		handler.Logger.Error("error updating VTEC UGC: " + err.Error())
@@ -540,10 +528,10 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID, warningID *db
 	}
 
 	_, err = surrealdb.Merge[[]db.WarningUGC](handler.DB, warningUgcs, map[string]interface{}{
-		"expires": expires,
-		"end":     end,
+		"expires": expires.UTC(),
+		"end":     end.UTC(),
 		"action":  action,
-		"latest":  historyID,
+		"latest":  warningID.RecordID(),
 	})
 	if err != nil {
 		handler.Logger.Error("error updating Warning UGC: " + err.Error())
