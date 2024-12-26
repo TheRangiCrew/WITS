@@ -83,6 +83,10 @@ DEFINE FIELD IF NOT EXISTS wmo ON TABLE product TYPE {
     bbb: string
 };
 
+DEFINE INDEX created_at ON product FIELDS created_at;
+DEFINE INDEX received_at ON product FIELDS received_at;
+DEFINE INDEX wmo ON product FIELDS wmo;
+
 
 --------------------------------------------------
 ---- VTEC Products, Segments, and Static Data ----
