@@ -40,6 +40,7 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 	// Get the WMO header
 	wmo, err := awips.ParseWMO(text)
 	if err != nil {
+		handler.Logger.Error(err.Error())
 		return err
 	}
 
@@ -54,6 +55,7 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 	// Find the issue time
 	issued, err := awips.GetIssuedTime(text)
 	if err != nil {
+		handler.Logger.Error(err.Error())
 		return err
 	}
 	if issued.IsZero() {
@@ -62,7 +64,10 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 	}
 
 	// Get the AWIPS header
-	awipsHeader, _ := awips.ParseAWIPS(text)
+	awipsHeader, err := awips.ParseAWIPS(text)
+	if err != nil {
+		handler.Logger.Debug(err.Error())
+	}
 
 	ignore := []string{"CAP", "HML"}
 	if slices.Contains(ignore, awipsHeader.Product) {
@@ -149,18 +154,20 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 
 	dbProduct, err := handler.TextProduct(product, receivedAt)
 	if err != nil {
+		handler.Logger.Error(err.Error())
 		return err
 	}
 
 	handler.Logger.SetProduct(*dbProduct.ID)
 
-	if product.AWIPS.Product == "CAP" || product.AWIPS.Product == "WOU" {
+	if product.AWIPS.Product == "WOU" {
 		return nil
 	}
 
 	if product.AWIPS.Original == "SWOMCD" {
 		err := handler.mcd(product, dbProduct)
 		if err != nil {
+			handler.Logger.Error(err.Error())
 			return err
 		}
 	}
