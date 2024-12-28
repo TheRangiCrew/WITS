@@ -8,28 +8,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/db"
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/logger"
 	"github.com/TheRangiCrew/go-nws/pkg/awips"
 	"github.com/surrealdb/surrealdb.go"
 )
 
 type Handler struct {
-	Logger  *logger.Logger
-	DB      *surrealdb.DB
-	UGCData map[string]db.UGC
-	ctx     context.Context
+	Logger *logger.Logger
+	DB     *surrealdb.DB
+	ctx    context.Context
 }
 
-func New(db *surrealdb.DB, ugcData map[string]db.UGC, minLog int) (*Handler, error) {
+func New(db *surrealdb.DB, minLog int) (*Handler, error) {
 
 	l := logger.New(db, slog.Level(minLog))
 
 	handler := Handler{
-		Logger:  &l,
-		DB:      db,
-		UGCData: ugcData,
-		ctx:     context.Background(),
+		Logger: &l,
+		DB:     db,
+		ctx:    context.Background(),
 	}
 
 	return &handler, nil

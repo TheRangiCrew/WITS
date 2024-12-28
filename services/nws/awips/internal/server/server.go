@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
@@ -16,13 +15,8 @@ type ServerConfig struct {
 	MinLog int
 }
 
-type ServerData struct {
-	UGC map[string]db.UGC
-}
-
 type Server struct {
 	DB     *surrealdb.DB
-	Data   *ServerData
 	MinLog int
 }
 
@@ -34,13 +28,7 @@ func New(config ServerConfig) (*Server, error) {
 
 	server := Server{
 		DB:     db,
-		Data:   &ServerData{},
 		MinLog: config.MinLog,
-	}
-
-	err = server.loadUGC()
-	if err != nil {
-		return nil, err
 	}
 
 	return &server, nil
@@ -72,7 +60,7 @@ func NWWS(config ServerConfig) {
 
 	go func() {
 		for message := range queue {
-			h, err := handler.New(server.DB, server.Data.UGC, server.MinLog)
+			h, err := handler.New(server.DB, server.MinLog)
 			if err != nil {
 				errChan <- err
 				return
@@ -84,31 +72,4 @@ func NWWS(config ServerConfig) {
 	for err := range errChan {
 		slog.Error(err.Error())
 	}
-}
-
-func (server *Server) loadUGC() error {
-	slog.Info("Getting UGC data")
-
-	// Get the latest UGC data
-	queryResult, err := surrealdb.Query[[]db.UGC](server.DB, "SELECT * OMIT geometry, centre FROM ugc WHERE valid_to == null", map[string]interface{}{})
-	if err != nil {
-		return err
-	}
-
-	result := *queryResult
-
-	if len(result[0].Result) == 0 {
-		return fmt.Errorf("received 0 UGC records")
-	}
-
-	data := map[string]db.UGC{}
-	for _, ugc := range result[0].Result {
-		data[ugc.ID.ID.(string)] = ugc
-	}
-
-	server.Data.UGC = data
-
-	slog.Info("Retrieved UGC data")
-
-	return nil
 }

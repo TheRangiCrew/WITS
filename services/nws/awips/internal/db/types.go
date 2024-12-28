@@ -184,29 +184,30 @@ func (id *VTECUGCID) String() string {
 
 // VTEC Event History
 type VTECHistory struct {
-	ID           *models.RecordID        `json:"id"`
-	CreatedAt    *models.CustomDateTime  `json:"created_at,omitempty"`
-	Issued       *models.CustomDateTime  `json:"issued"`
-	Start        *models.CustomDateTime  `json:"start,omitempty"`
-	Expires      *models.CustomDateTime  `json:"expires"`
-	End          *models.CustomDateTime  `json:"end,omitempty"`
-	Original     string                  `json:"original"`
-	Title        string                  `json:"title"`
-	Action       *models.RecordID        `json:"action"`
-	Phenomena    *models.RecordID        `json:"phenomena"`
-	Office       *models.RecordID        `json:"office"`
-	Significance *models.RecordID        `json:"significance"`
-	EventNumber  int                     `json:"event_number"`
-	VTEC         VTEC                    `json:"vtec"`
-	HVTEC        HVTEC                   `json:"h_vtec,omitempty"`
-	IsEmergency  bool                    `json:"is_emergency"`
-	IsPDS        bool                    `json:"is_pds"`
-	LatLon       *LatLon                 `json:"lat_lon,omitempty"`
-	Polygon      *models.GeometryPolygon `json:"polygon,omitempty"`
-	Tags         map[string]string       `json:"tags"`
-	TML          *TML                    `json:"tml,omitempty"`
-	Product      *models.RecordID        `json:"product"`
-	UGC          []*models.RecordID      `json:"ugc"`
+	ID           *models.RecordID          `json:"id"`
+	CreatedAt    *models.CustomDateTime    `json:"created_at,omitempty"`
+	Issued       *models.CustomDateTime    `json:"issued"`
+	Start        *models.CustomDateTime    `json:"start,omitempty"`
+	Expires      *models.CustomDateTime    `json:"expires"`
+	End          *models.CustomDateTime    `json:"end,omitempty"`
+	Original     string                    `json:"original"`
+	Title        string                    `json:"title"`
+	Action       *models.RecordID          `json:"action"`
+	Phenomena    *models.RecordID          `json:"phenomena"`
+	Office       *models.RecordID          `json:"office"`
+	Significance *models.RecordID          `json:"significance"`
+	EventNumber  int                       `json:"event_number"`
+	VTEC         VTEC                      `json:"vtec"`
+	HVTEC        HVTEC                     `json:"h_vtec,omitempty"`
+	IsEmergency  bool                      `json:"is_emergency"`
+	IsPDS        bool                      `json:"is_pds"`
+	LatLon       *LatLon                   `json:"lat_lon,omitempty"`
+	Polygon      *models.GeometryPolygon   `json:"polygon,omitempty"`
+	BBox         models.GeometryMultiPoint `json:"bbox,omitempty"`
+	Tags         map[string]string         `json:"tags"`
+	TML          *TML                      `json:"tml,omitempty"`
+	Product      *models.RecordID          `json:"product"`
+	UGC          []*models.RecordID        `json:"ugc"`
 }
 
 type VTECHistoryID struct {
@@ -268,22 +269,23 @@ type TML struct {
 
 // Warning
 type Warning struct {
-	ID           *models.RecordID        `json:"id,omitempty"`
-	CreatedAt    *models.CustomDateTime  `json:"created_at,omitempty"`
-	UpdatedAt    *models.CustomDateTime  `json:"updated_at,omitempty"`
-	Updates      int                     `json:"updates"`
-	Issued       *models.CustomDateTime  `json:"issued"`
-	Start        *models.CustomDateTime  `json:"start,omitempty"`
-	Expires      *models.CustomDateTime  `json:"expires"`
-	End          *models.CustomDateTime  `json:"end,omitempty"`
-	Phenomena    *models.RecordID        `json:"phenomena"`
-	Office       *models.RecordID        `json:"office"`
-	Significance *models.RecordID        `json:"significance"`
-	EventNumber  int                     `json:"event_number"`
-	Title        string                  `json:"title"`
-	IsEmergency  bool                    `json:"is_emergency"`
-	IsPDS        bool                    `json:"is_pds"`
-	Polygon      *models.GeometryPolygon `json:"polygon,omitempty"`
+	ID           *models.RecordID          `json:"id,omitempty"`
+	CreatedAt    *models.CustomDateTime    `json:"created_at,omitempty"`
+	UpdatedAt    *models.CustomDateTime    `json:"updated_at,omitempty"`
+	Updates      int                       `json:"updates"`
+	Issued       *models.CustomDateTime    `json:"issued"`
+	Start        *models.CustomDateTime    `json:"start,omitempty"`
+	Expires      *models.CustomDateTime    `json:"expires"`
+	End          *models.CustomDateTime    `json:"end,omitempty"`
+	Phenomena    *models.RecordID          `json:"phenomena"`
+	Office       *models.RecordID          `json:"office"`
+	Significance *models.RecordID          `json:"significance"`
+	EventNumber  int                       `json:"event_number"`
+	Title        string                    `json:"title"`
+	IsEmergency  bool                      `json:"is_emergency"`
+	IsPDS        bool                      `json:"is_pds"`
+	Polygon      *models.GeometryPolygon   `json:"polygon,omitempty"`
+	BBox         models.GeometryMultiPoint `json:"bbox,omitempty"`
 }
 
 type WarningID struct {
@@ -335,26 +337,27 @@ func (id *WarningUGCID) String() string {
 
 // Warning History
 type WarningHistory struct {
-	ID           *models.RecordID        `json:"id"`
-	CreatedAt    *models.CustomDateTime  `json:"created_at,omitempty"`
-	Issued       *models.CustomDateTime  `json:"issued"`
-	Start        *models.CustomDateTime  `json:"start,omitempty"`
-	Expires      *models.CustomDateTime  `json:"expires"`
-	End          *models.CustomDateTime  `json:"end,omitempty"`
-	Original     string                  `json:"original"`
-	Title        string                  `json:"title"`
-	Action       *models.RecordID        `json:"action"`
-	Phenomena    *models.RecordID        `json:"phenomena"`
-	Office       *models.RecordID        `json:"office"`
-	Significance *models.RecordID        `json:"significance"`
-	EventNumber  int                     `json:"event_number"`
-	IsEmergency  bool                    `json:"is_emergency"`
-	IsPDS        bool                    `json:"is_pds"`
-	Polygon      *models.GeometryPolygon `json:"polygon,omitempty"`
-	Tags         map[string]string       `json:"tags"`
-	TML          *TML                    `json:"tml,omitempty"`
-	Product      *models.RecordID        `json:"product"`
-	UGC          []*models.RecordID      `json:"ugc"`
+	ID           *models.RecordID          `json:"id"`
+	CreatedAt    *models.CustomDateTime    `json:"created_at,omitempty"`
+	Issued       *models.CustomDateTime    `json:"issued"`
+	Start        *models.CustomDateTime    `json:"start,omitempty"`
+	Expires      *models.CustomDateTime    `json:"expires"`
+	End          *models.CustomDateTime    `json:"end,omitempty"`
+	Original     string                    `json:"original"`
+	Title        string                    `json:"title"`
+	Action       *models.RecordID          `json:"action"`
+	Phenomena    *models.RecordID          `json:"phenomena"`
+	Office       *models.RecordID          `json:"office"`
+	Significance *models.RecordID          `json:"significance"`
+	EventNumber  int                       `json:"event_number"`
+	IsEmergency  bool                      `json:"is_emergency"`
+	IsPDS        bool                      `json:"is_pds"`
+	Polygon      *models.GeometryPolygon   `json:"polygon,omitempty"`
+	BBox         models.GeometryMultiPoint `json:"bbox,omitempty"`
+	Tags         map[string]string         `json:"tags"`
+	TML          *TML                      `json:"tml,omitempty"`
+	Product      *models.RecordID          `json:"product"`
+	UGC          []*models.RecordID        `json:"ugc"`
 }
 
 type WarningHistoryID struct {
