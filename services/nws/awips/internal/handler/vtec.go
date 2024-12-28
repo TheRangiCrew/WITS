@@ -108,7 +108,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, productID *models.Recor
 					IsPDS:        segment.IsPDS(),
 				})
 				if err != nil {
-					handler.Logger.Error(fmt.Sprintf("failed to create VTEC event: " + err.Error()))
+					handler.Logger.Error(fmt.Sprintf("failed to create VTEC event: %s", err.Error()))
 					continue
 				}
 			}
@@ -132,7 +132,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, productID *models.Recor
 					IsPDS:        segment.IsPDS(),
 				})
 				if err != nil {
-					handler.Logger.Error(fmt.Sprintf("failed to create warning: " + err.Error()))
+					handler.Logger.Error(fmt.Sprintf("failed to create warning: %s", err.Error()))
 					continue
 				}
 			}
@@ -343,6 +343,8 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 	// Update the event's updates
 	event.Updates++
 
+	event.Title = vtec.Title(segment.IsEmergency())
+
 	// Now for the warning
 	warningHistoryID := db.WarningHistoryID{
 		EventNumber:  vtec.EventNumber,
@@ -390,6 +392,8 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 	}
 
 	handler.warning.Updates++
+
+	handler.warning.Title = vtec.Title(segment.IsEmergency())
 
 	return &vtecHistoryID, &warningHistoryID, nil
 }
