@@ -429,8 +429,6 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 	vtec := handler.vtec
 	ugcs := handler.ugc
 
-	fmt.Println(*event.ID)
-
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
 	// The product expires at the UGC expiry time
