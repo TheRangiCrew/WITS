@@ -20,6 +20,7 @@ type vtecHandler struct {
 	productID *models.RecordID
 	product   *awips.TextProduct
 	segment   *awips.TextProductSegment
+	ugc       map[string]db.UGC
 	vtec      awips.VTEC
 }
 
@@ -159,6 +160,12 @@ func (handler *Handler) vtec(product *awips.TextProduct, productID *models.Recor
 				vtec:      vtec,
 			}
 
+			err = vh.segmentUGC()
+			if err != nil {
+				handler.Logger.Error(err.Error())
+				continue
+			}
+
 			vh.handle()
 		}
 
@@ -246,19 +253,19 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 	product := handler.product
 	segment := handler.segment
 	vtec := handler.vtec
+	ugcs := handler.ugc
 
 	// Get any polygons in the product
 	var latlon *db.LatLon
 	var polygon *models.GeometryPolygon
+	var bbox models.GeometryMultiPoint
 	if segment.LatLon != nil {
 		output := util.LatLonFromAwips(*segment.LatLon)
 		latlon = &output
 		polygon = &latlon.Points
 		handler.warning.Polygon = polygon
+		bbox = util.BBoxFromAwips(*segment.LatLon)
 	}
-
-	// Generate UGC array
-	ugcs := handler.segmentUGC()
 
 	// Get any TML data
 	var tml *db.TML
@@ -276,6 +283,19 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 			Time:        models.CustomDateTime{Time: tmlAwips.Time},
 			Original:    tmlAwips.Original,
 		}
+	}
+
+	mpolygons := []models.GeometryMultiPolygon{}
+	ugc := []*models.RecordID{}
+	for _, i := range ugcs {
+		ugc = append(ugc, i.ID)
+		if polygon == nil {
+			mpolygons = append(mpolygons, *i.Geometry)
+		}
+	}
+
+	if polygon == nil {
+		bbox = util.BBoxFromMultiPolygon(mpolygons)
 	}
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
@@ -321,10 +341,11 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		IsPDS:       segment.IsPDS(),
 		LatLon:      latlon,
 		Polygon:     polygon,
+		BBox:        bbox,
 		Tags:        segment.Tags,
 		TML:         tml,
 		Product:     handler.productID,
-		UGC:         ugcs,
+		UGC:         ugc,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating %s: %s", vtecHistoryID.String(), err.Error())
@@ -372,10 +393,11 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 		IsEmergency:  segment.IsEmergency(),
 		IsPDS:        segment.IsPDS(),
 		Polygon:      polygon,
+		BBox:         bbox,
 		Tags:         segment.Tags,
 		TML:          tml,
 		Product:      handler.productID,
-		UGC:          ugcs,
+		UGC:          ugc,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating %s: %s", warningHistoryID.String(), err.Error())
@@ -394,6 +416,7 @@ func (handler *vtecHandler) createHistoryRecords() (*db.VTECHistoryID, *db.Warni
 	handler.warning.Updates++
 
 	handler.warning.Title = vtec.Title(segment.IsEmergency())
+	handler.warning.BBox = bbox
 
 	return &vtecHistoryID, &warningHistoryID, nil
 }
@@ -404,8 +427,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 	warning := handler.warning
 	segment := handler.segment
 	vtec := handler.vtec
-
-	records := handler.segmentUGC()
+	ugcs := handler.ugc
 
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
@@ -419,10 +441,10 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 		end = *vtec.End
 	}
 
-	for _, id := range records {
+	for _, ugc := range ugcs {
 		err := surrealdb.Relate(handler.DB, &surrealdb.Relationship{
 			In:       *event.ID,
-			Out:      *id,
+			Out:      *ugc.ID,
 			Relation: models.Table("vtec_ugc"),
 			Data: map[string]any{
 				"id": models.NewRecordID("vtec_ugc", db.VTECUGCID{
@@ -431,7 +453,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 					Office:       vtec.WFO,
 					Significance: vtec.Significance,
 					Year:         handler.eventID.Year,
-					UGC:          fmt.Sprintf("%v", id.ID),
+					UGC:          fmt.Sprintf("%v", ugc.ID.ID),
 				}),
 				"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
 				"issued":      &models.CustomDateTime{Time: product.Issued},
@@ -444,13 +466,13 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 			},
 		})
 		if err != nil {
-			handler.Logger.Error(fmt.Sprintf("error relating %s: %s", id.String(), err.Error()))
+			handler.Logger.Error(fmt.Sprintf("error relating %s: %s", ugc.ID.String(), err.Error()))
 			continue
 		}
 
 		err = surrealdb.Relate(handler.DB, &surrealdb.Relationship{
 			In:       *warning.ID,
-			Out:      *id,
+			Out:      *ugc.ID,
 			Relation: models.Table("warning_ugc"),
 			Data: map[string]any{
 				"id": models.NewRecordID("warning_ugc", db.WarningUGCID{
@@ -459,7 +481,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 					Office:       vtec.WFO,
 					Significance: vtec.Significance,
 					Year:         handler.eventID.Year,
-					UGC:          fmt.Sprintf("%v", id.ID),
+					UGC:          fmt.Sprintf("%v", ugc.ID.ID),
 				}),
 				"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
 				"issued":      &models.CustomDateTime{Time: product.Issued},
@@ -472,7 +494,7 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 			},
 		})
 		if err != nil {
-			handler.Logger.Error(fmt.Sprintf("error relating %s to %s: %s", id.String(), warning.ID.String(), err.Error()))
+			handler.Logger.Error(fmt.Sprintf("error relating %s to %s: %s", ugc.ID.String(), warning.ID.String(), err.Error()))
 		}
 	}
 }
@@ -480,13 +502,12 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID, warningID *db.WarningHistoryID) {
 	segment := handler.segment
 	vtec := handler.vtec
-
-	records := handler.segmentUGC()
+	ugc := handler.ugc
 
 	vtecUgcs := []models.RecordID{}
 	warningUgcs := []models.RecordID{}
 
-	for _, ugc := range records {
+	for _, ugc := range ugc {
 		id := db.VTECUGCID{
 			EventNumber:  vtec.EventNumber,
 			Phenomena:    vtec.Phenomena,
@@ -544,10 +565,10 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID, warningID *db
 }
 
 // Creates an array of UGC record IDs for the database
-func (handler *vtecHandler) segmentUGC() []*models.RecordID {
+func (handler *vtecHandler) segmentUGC() error {
 	segment := handler.segment
 
-	ugcs := []*models.RecordID{}
+	ids := []models.RecordID{}
 	// For each state...
 	for _, state := range segment.UGC.States {
 		// ...and for each area...
@@ -560,23 +581,42 @@ func (handler *vtecHandler) segmentUGC() []*models.RecordID {
 			if area == "000" || area == "ALL" {
 				// Find all UGC codes from the state
 				key := state.ID + ugcType
-				for k, ugc := range handler.UGCData {
-					if k[0:3] == key {
-						ugcs = append(ugcs, ugc.ID)
-					}
+				fmt.Println(key)
+				res, err := surrealdb.Query[[]struct {
+					ID models.RecordID `json:"id"`
+				}](handler.DB, fmt.Sprintf(`SELECT id FROM ugc WHERE string::slice(record::id(id), 0, 3) == "%s"`, key), map[string]interface{}{})
+				if err != nil {
+					return fmt.Errorf("error retrieving ALL ugc: %s", err.Error())
+				}
+
+				result := (*res)[0].Result
+
+				if len(result) == 0 {
+					return fmt.Errorf("got 0 UGC for %s. Expected ALL", key)
+				}
+
+				for _, i := range result {
+					ids = append(ids, i.ID)
 				}
 			} else {
 				// Get the needed UGCs
 				id := state.ID + ugcType + area
-				ugc := handler.UGCData[id]
-				if ugc.ID == nil {
-					handler.Logger.Warn(fmt.Sprintf("Could not find UGC %s", id))
-					continue
-				}
-				ugcs = append(ugcs, ugc.ID)
+				ids = append(ids, models.NewRecordID("ugc", id))
 			}
 		}
 	}
 
-	return ugcs
+	res, err := surrealdb.Select[[]db.UGC, []models.RecordID](handler.DB, ids)
+	if err != nil {
+		return fmt.Errorf("error retrieving ugcs: %s", err.Error())
+	}
+
+	ugcs := map[string]db.UGC{}
+	for _, i := range *res {
+		ugcs[i.ID.String()] = i
+	}
+
+	handler.ugc = ugcs
+
+	return nil
 }
