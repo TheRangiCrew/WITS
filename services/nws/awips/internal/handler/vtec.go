@@ -429,6 +429,8 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 	vtec := handler.vtec
 	ugcs := handler.ugc
 
+	fmt.Println(*event.ID)
+
 	action := models.NewRecordID("vtec_action", vtec.Action)
 
 	// The product expires at the UGC expiry time
@@ -455,7 +457,10 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 					Year:         handler.eventID.Year,
 					UGC:          fmt.Sprintf("%v", ugc.ID.ID),
 				}),
+				"in":          event.ID,
+				"out":         ugc.ID,
 				"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
+				"updated_at":  &models.CustomDateTime{Time: time.Now().UTC()},
 				"issued":      &models.CustomDateTime{Time: product.Issued},
 				"start":       event.Start,
 				"expires":     &models.CustomDateTime{Time: expires},
@@ -483,7 +488,10 @@ func (handler *vtecHandler) relateUGC(historyID *db.VTECHistoryID, warningID *db
 					Year:         handler.eventID.Year,
 					UGC:          fmt.Sprintf("%v", ugc.ID.ID),
 				}),
+				"in":          warning.ID,
+				"out":         ugc.ID,
 				"created_at":  &models.CustomDateTime{Time: time.Now().UTC()},
+				"updated_at":  &models.CustomDateTime{Time: time.Now().UTC()},
 				"issued":      &models.CustomDateTime{Time: product.Issued},
 				"start":       event.Start,
 				"expires":     &models.CustomDateTime{Time: expires},
