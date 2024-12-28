@@ -61,6 +61,7 @@ DEFINE FIELD IF NOT EXISTS is_fire ON TABLE ugc TYPE bool;
 DEFINE FIELD IF NOT EXISTS valid_from ON TABLE ugc TYPE datetime DEFAULT time::now();
 DEFINE FIELD IF NOT EXISTS valid_to ON TABLE ugc TYPE datetime | null DEFAULT null;
 
+DEFINE INDEX state ON ugc FIELDS state;
 
 -----------------------
 ---- Text Products ----
@@ -181,6 +182,7 @@ DEFINE FIELD IF NOT EXISTS lat_lon ON TABLE vtec_history TYPE option<{
     points: geometry<Polygon>
 }>;
 DEFINE FIELD IF NOT EXISTS polygon ON TABLE vtec_history TYPE option<geometry<Polygon>>;
+DEFINE FIELD IF NOT EXISTS bbox ON TABLE vtec_history TYPE option<geometry<MultiPoint>>;
 DEFINE FIELD IF NOT EXISTS tags ON TABLE vtec_history FLEXIBLE TYPE option<object>;
 DEFINE FIELD IF NOT EXISTS tml ON TABLE vtec_history TYPE option<{
     direction: int,
@@ -219,6 +221,7 @@ DEFINE FIELD IF NOT EXISTS title ON TABLE warning TYPE string;
 DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning TYPE bool;
 DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning TYPE bool;
 DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning TYPE option<geometry<Polygon>>;
+DEFINE FIELD IF NOT EXISTS bbox ON TABLE warning TYPE option<geometry<MultiPoint>>;
 
 
 -- Warning UGC --
@@ -255,6 +258,7 @@ DEFINE FIELD IF NOT EXISTS significance ON TABLE warning_history TYPE record<vte
 DEFINE FIELD IF NOT EXISTS is_emergency ON TABLE warning_history TYPE bool;
 DEFINE FIELD IF NOT EXISTS is_pds ON TABLE warning_history TYPE bool;
 DEFINE FIELD IF NOT EXISTS polygon ON TABLE warning_history TYPE option<geometry<Polygon>>;
+DEFINE FIELD IF NOT EXISTS bbox ON TABLE warning_history TYPE option<geometry<MultiPoint>>;
 DEFINE FIELD IF NOT EXISTS tags ON TABLE warning_history FLEXIBLE TYPE option<object>;
 DEFINE FIELD IF NOT EXISTS tml ON TABLE warning_history TYPE option<{
     direction: int,
