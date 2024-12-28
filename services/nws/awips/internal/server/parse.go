@@ -10,7 +10,7 @@ import (
 	"github.com/TheRangiCrew/WITS/services/nws/awips/internal/handler"
 )
 
-func ParseText(filename string, dbConfig db.DBConfig) {
+func ParseText(filename string, dbConfig db.DBConfig, minLog int) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		slog.Error(err.Error())
@@ -20,7 +20,8 @@ func ParseText(filename string, dbConfig db.DBConfig) {
 	text := string(data)
 
 	config := ServerConfig{
-		DB: dbConfig,
+		DB:     dbConfig,
+		MinLog: minLog,
 	}
 
 	server, err := New(config)
@@ -29,7 +30,7 @@ func ParseText(filename string, dbConfig db.DBConfig) {
 		return
 	}
 
-	h, err := handler.New(server.DB, server.Data.UGC, server.MinLog)
+	h, err := handler.New(server.DB, server.MinLog)
 	if err != nil {
 		slog.Error(err.Error())
 		return

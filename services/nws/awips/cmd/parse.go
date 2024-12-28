@@ -55,6 +55,6 @@ var parseCmd = &cobra.Command{
 			AsRoot:   RootAuth,
 		}
 
-		server.ParseText(args[0], config)
+		server.ParseText(args[0], config, Log)
 	},
 }
