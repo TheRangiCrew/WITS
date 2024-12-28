@@ -144,8 +144,8 @@ func (handler *Handler) vtec(product *awips.TextProduct, productID *models.Recor
 				warning.IsEmergency = segment.IsEmergency()
 			}
 			if segment.IsPDS() {
-				event.IsEmergency = segment.IsPDS()
-				warning.IsEmergency = segment.IsPDS()
+				event.IsPDS = segment.IsPDS()
+				warning.IsPDS = segment.IsPDS()
 			}
 
 			vh := vtecHandler{
