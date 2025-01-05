@@ -520,7 +520,7 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID, warningID *db
 			Office:       vtec.WFO,
 			Significance: vtec.Significance,
 			Year:         handler.eventID.Year,
-			UGC:          fmt.Sprintf("%v", ugc.ID),
+			UGC:          fmt.Sprintf("%v", ugc.ID.ID),
 		}
 		vtecUgcs = append(vtecUgcs, models.NewRecordID("vtec_ugc", id))
 
@@ -530,7 +530,7 @@ func (handler *vtecHandler) updateUGC(historyID *db.VTECHistoryID, warningID *db
 			Office:       vtec.WFO,
 			Significance: vtec.Significance,
 			Year:         handler.eventID.Year,
-			UGC:          fmt.Sprintf("%v", ugc.ID),
+			UGC:          fmt.Sprintf("%v", ugc.ID.ID),
 		}
 		warningUgcs = append(warningUgcs, models.NewRecordID("warning_ugc", wID))
 	}
