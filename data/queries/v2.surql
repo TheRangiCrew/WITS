@@ -282,8 +282,12 @@ DEFINE TABLE IF NOT EXISTS warning_event_history SCHEMAFULL TYPE RELATION FROM w
 DEFINE TABLE IF NOT EXISTS severe_watch SCHEMAFULL TYPE NORMAL;
 
 DEFINE FIELD IF NOT EXISTS id ON TABLE severe_watch TYPE
-{ number: int, phenomena: "SV" | "TO", issued: datetime };
+{ number: int, phenomena: "SV" | "TO", year: int };
+DEFINE FIELD IF NOT EXISTS created_at ON TABLE severe_watch TYPE datetime DEFAULT time::now();
+DEFINE FIELD IF NOT EXISTS type ON TABLE severe_watch TYPE "SV" | "TO";
+DEFINE FIELD IF NOT EXISTS issued ON TABLE severe_watch TYPE datetime;
 DEFINE FIELD IF NOT EXISTS expires ON TABLE severe_watch TYPE datetime;
+DEFINE FIELD IF NOT EXISTS saw ON TABLE severe_watch TYPE record<product>;
 DEFINE FIELD IF NOT EXISTS sel ON TABLE severe_watch TYPE record<product>;
 DEFINE FIELD IF NOT EXISTS wou ON TABLE severe_watch TYPE record<product>;
 DEFINE FIELD IF NOT EXISTS wwp ON TABLE severe_watch TYPE {
