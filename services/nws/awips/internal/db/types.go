@@ -407,3 +407,39 @@ type MCD struct {
 	Polygon          *models.GeometryPolygon `json:"polygon"`
 	WatchProbability int                     `json:"watch_probability"`
 }
+
+type Watch struct {
+	ID        *models.RecordID        `json:"id,omitempty"`
+	CreatedAt *models.CustomDateTime  `json:"created_at,omitempty"`
+	UpdatedAt *models.CustomDateTime  `json:"updated_at,omitempty"`
+	Issued    *models.CustomDateTime  `json:"issued"`
+	Expires   *models.CustomDateTime  `json:"expires"`
+	SAW       *models.RecordID        `json:"saw"`
+	SEL       *models.RecordID        `json:"sel"`
+	WOU       *models.RecordID        `json:"wou"`
+	WWP       WatchWWP                `json:"wwp"`
+	IsPDS     bool                    `json:"is_pds"`
+	Polygon   *models.GeometryPolygon `json:"polygon"`
+}
+
+type WatchID struct {
+	Number    int    `json:"number"`
+	Phenomena string `json:"phenomena"`
+	Year      int    `json:"year"`
+}
+
+type WatchWWP struct {
+	Text             *models.RecordID `json:"text"`
+	Degrees          int              `json:"degrees"`
+	Speed            int              `json:"speed"`
+	MaxTops          int              `json:"max_tops"`
+	MaxHail          float64          `json:"max_hail"`
+	OneOrMoreHail    string           `json:"one_or_more_hail"`
+	TenOrMoreSevHail string           `json:"ten_or_more_sev_hail"`
+	MaxWind          int              `json:"max_wind"`
+	OneOrMoreWind    string           `json:"one_or_more_wind"`
+	TenOrMoreSevWind string           `json:"ten_or_more_sev_wind"`
+	TwoOrMoreTor     string           `json:"two_or_more_tor"`
+	StrongTor        string           `json:"strong_tor"`
+	SixOrMoreCombo   string           `json:"six_or_more_combo"`
+}

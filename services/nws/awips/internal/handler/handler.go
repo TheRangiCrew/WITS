@@ -157,8 +157,8 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 
 	handler.Logger.SetProduct(*dbProduct.ID)
 
-	if product.AWIPS.Product == "WOU" {
-		return nil
+	if product.AWIPS.Product == "SAW" || product.AWIPS.Product == "SEL" || product.AWIPS.Product == "WWP" || product.AWIPS.Product == "WOU" {
+		handler.watch(product, dbProduct.ID)
 	}
 
 	if product.AWIPS.Original == "SWOMCD" {
@@ -169,7 +169,7 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		}
 	}
 
-	if product.HasVTEC() {
+	if product.HasVTEC() && product.AWIPS.Product != "WOU" {
 		handler.vtec(product, dbProduct.ID)
 	}
 
