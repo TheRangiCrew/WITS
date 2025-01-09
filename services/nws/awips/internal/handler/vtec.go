@@ -201,6 +201,8 @@ func (handler *vtecHandler) handle() {
 	case "EXP":
 		event.Expires.Time = end
 		warning.Expires.Time = end
+		event.End.Time = end
+		warning.End.Time = end
 	case "EXT":
 		fallthrough
 	case "EXB":
