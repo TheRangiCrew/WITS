@@ -1,0 +1,52 @@
+-- States --
+CREATE TABLE state (
+    id serial UNIQUE PRIMARY KEY,
+    state varchar(2) UNIQUE NOT NULL,
+    name varchar(50) NOT NULL,
+    fips varchar(2) UNIQUE NOT NULL,
+    is_offshore boolean NOT NULL
+);
+
+-- Office --
+CREATE TABLE office (
+    id serial UNIQUE PRIMARY KEY,
+    code char(3) UNIQUE NOT NULL,
+    icao varchar(4) UNIQUE NOT NULL,
+    name varchar(50) NOT NULL,
+    state serial NOT NULL REFERENCES state,
+    location geometry(Point, 4326)
+);
+
+-- County Warning Area --
+CREATE TABLE cwa (
+    id serial UNIQUE PRIMARY KEY,
+    cwa char(2) NOT NULL,
+    name varchar(50) NOT NULL,
+    area real NOT NULL,
+    geom geometry(MultiPolygon, 4326) NOT NULL,
+    wfo char(3) NOT NULL REFERENCES office,
+    region char(2) NOT NULL,
+    valid_from timestamptz NOT NULL
+);
+CREATE INDEX cwa_cwa ON cwa(cwa);
+
+-- UGC (Universal Geographic Code) --
+CREATE TABLE ugc (
+    id serial UNIQUE PRIMARY KEY,
+    ugc char(6) NOT NULL,
+    name varchar(256) NOT NULL,
+    state char(2) NOT NULL REFERENCES state,
+    type char NOT NULL,
+    area real NOT NULL,
+    geom geometry(MultiPolygon, 4326) NOT NULL,
+    cwa char(2)[] NOT NULL,
+    is_marine boolean,
+    is_fire boolean,
+    valid_from timestamptz DEFAULT CURRENT_TIMESTAMP,
+    valid_to timestamptz
+);
+CREATE INDEX ugc_ugc ON ugc(ugc);
+CREATE INDEX ugc_geom ON ugc USING GIST(geom);
+
+-- Text Products --
+CREATE TABLE 
