@@ -194,7 +194,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 					EndInitial:   *vtec.End,
 					Class:        vtec.Class,
 					Phenomena:    vtec.Phenomena,
-					WFO:          vtec.WFO[1:],
+					WFO:          vtec.WFO,
 					Significance: vtec.Significance,
 					EventNumber:  vtec.EventNumber,
 					Year:         year,
@@ -312,7 +312,7 @@ func (handler *vtecHandler) update() {
 	_, err = handler.db.Exec(handler.db.CTX, `
 	UPDATE vtec_event SET updated_at = CURRENT_TIMESTAMP, is_emergency = $6, is_pds = $7 WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
-			`, vtec.WFO[1:], vtec.Phenomena, vtec.Significance, vtec.EventNumber, handler.event.Year, segment.IsEmergency(), segment.IsPDS())
+			`, vtec.WFO, vtec.Phenomena, vtec.Significance, vtec.EventNumber, handler.event.Year, segment.IsEmergency(), segment.IsPDS())
 	if err != nil {
 		handler.logger.Warn(fmt.Sprintf("failed to update VTEC event %s: %s", handler.vtec.Original, err.Error()))
 		return
@@ -399,7 +399,7 @@ func (handler *vtecHandler) createUpdates() error {
 			Ends:          event.Ends,
 			Text:          segment.Text,
 			Product:       product.ProductID,
-			WFO:           vtec.WFO[1:],
+			WFO:           vtec.WFO,
 			Action:        vtec.Action,
 			Class:         vtec.Class,
 			Phenomena:     vtec.Phenomena,
