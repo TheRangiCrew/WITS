@@ -1,0 +1,75 @@
+{
+    "rabbit_version": "4.0.7",
+    "vhosts": [
+        {
+            "name": "/"
+        }
+    ],
+    "permissions": [
+        {
+            "user": "wits",
+            "vhost": "/",
+            "configure": ".*",
+            "write": ".*",
+            "read": ".*"
+        }
+    ],
+    "exchanges": [
+        {
+            "name": "nwwsoi.exchange",
+            "vhost": "/",
+            "type": "direct",
+            "durable": true,
+            "auto_delete": false,
+            "internal": false,
+            "arguments": {}
+        },
+        {
+            "name": "awips.exchange",
+            "vhost": "/",
+            "type": "direct",
+            "durable": true,
+            "auto_delete": false,
+            "internal": false,
+            "arguments": {}
+        }
+    ],
+    "queues": [
+        {
+            "name": "nwwsoi.queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-message-ttl": 1800000
+            }
+        },
+        {
+            "name": "awips.queue",
+            "vhost": "/",
+            "durable": true,
+            "auto_delete": false,
+            "arguments": {
+                "x-message-ttl": 1800000
+            }
+        }
+    ],
+    "bindings": [
+        {
+            "source": "nwwsoi.exchange",
+            "vhost": "/",
+            "destination": "nwwsoi.queue",
+            "destination_type": "queue",
+            "routing_key": "nwwsoi.awips",
+            "arguments": {}
+        },
+        {
+            "source": "awips.exchange",
+            "vhost": "/",
+            "destination": "warnings.queue",
+            "destination_type": "queue",
+            "routing_key": "awips.warnings",
+            "arguments": {}
+        }
+    ]
+}

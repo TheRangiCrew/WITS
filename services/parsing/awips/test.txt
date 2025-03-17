@@ -1,0 +1,56 @@
+366
+WFUS54 KBMX 152135
+TORBMX
+ALC107-152200-
+/O.NEW.KBMX.TO.W.0016.250315T2135Z-250315T2200Z/
+
+BULLETIN - EAS ACTIVATION REQUESTED
+Tornado Warning
+National Weather Service Birmingham AL
+435 PM CDT Sat Mar 15 2025
+
+The National Weather Service in Birmingham has issued a
+
+* Tornado Warning for...
+  Southeastern Pickens County in west central Alabama...
+
+* Until 500 PM CDT.
+
+* At 435 PM CDT, a severe thunderstorm capable of producing a tornado
+  was located over Johnston Lake, or near Aliceville, moving
+  northeast at 45 mph.
+
+  HAZARD...Tornado.
+
+  SOURCE...Radar indicated rotation.
+
+  IMPACT...Flying debris will be dangerous to those caught without
+           shelter. Mobile homes will be damaged or destroyed.
+           Damage to roofs, windows, and vehicles will occur.  Tree
+           damage is likely.
+
+* Locations impacted include...
+  Aliceville, Kirk, Dillburg, Pioneer, Benevola, Johnston Lake,
+  Gordo, McMullen, and Lubbub.
+
+PRECAUTIONARY/PREPAREDNESS ACTIONS...
+
+TAKE COVER NOW! Move to a basement or an interior room on the lowest
+floor of a sturdy building. Avoid windows. If you are outdoors, in a
+mobile home, or in a vehicle, move to the closest substantial shelter
+and protect yourself from flying debris.
+
+&&
+
+LAT...LON 3314 8820 3346 8784 3316 8784 3313 8789
+      3312 8793 3308 8797 3307 8802 3305 8803
+      3305 8804 3304 8804 3304 8805 3305 8807
+      3305 8808 3304 8807 3304 8809
+TIME...MOT...LOC 2135Z 227DEG 37KT 3316 8805
+
+TORNADO...RADAR INDICATED
+MAX HAIL SIZE...<.75 IN
+
+$$
+
+17/KLAWS
