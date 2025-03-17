@@ -1,5 +1,8 @@
 FROM golang:1.24.1 AS build
 
+# Install GEOS
+RUN apt-get update && apt-get install -y libgeos-dev
+
 # Set destination for COPY
 WORKDIR /
 
@@ -12,7 +15,7 @@ RUN go mod download
 COPY . ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /awips
+RUN CGO_ENABLED=1 GOOS=linux go build -o /awips
 
 FROM alpine:latest AS release
 
@@ -20,5 +23,4 @@ WORKDIR /
 
 COPY --from=build /awips /awips
 
-#
 ENTRYPOINT [ "/awips", "server", "--minlog", "1" ]
