@@ -10,16 +10,19 @@ WORKDIR /
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the source code. Note the slash at the end, as explained in
-# https://docs.docker.com/engine/reference/builder/#copy
+# Copy the source code
 COPY . ./
 
-# Build
+# Build with CGO enabled
 RUN CGO_ENABLED=1 GOOS=linux go build -o /awips
 
-FROM alpine:latest AS release
+# Use glibc-based image in the final stage
+FROM debian:bookworm-slim AS release
 
 WORKDIR /
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y libgeos-c1v5
 
 COPY --from=build /awips /awips
 

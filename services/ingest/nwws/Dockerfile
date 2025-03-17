@@ -20,4 +20,4 @@ WORKDIR /
 
 COPY --from=build /nwws /nwws
 
-ENTRYPOINT [ "/nwws", "server", "--minlog", "1" ]
+ENTRYPOINT [ "/nwws", "server" ]
