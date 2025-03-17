@@ -15,11 +15,11 @@ import (
 
 func Run() {
 	nwwsoi, err := nwws.New(&nwws.Config{
-		Server:   os.Getenv("NWWSOI_Server") + ":5222",
-		Room:     os.Getenv("NWWSOI_Room"),
-		User:     os.Getenv("NWWSOI_User"),
-		Pass:     os.Getenv("NWWSOI_Pass"),
-		Resource: os.Getenv("NWWSOI_Resource"),
+		Server:   os.Getenv("NWWSOI_SERVER") + ":5222",
+		Room:     os.Getenv("NWWSOI_ROOM"),
+		User:     os.Getenv("NWWSOI_USER"),
+		Pass:     os.Getenv("NWWSOI_PASS"),
+		Resource: os.Getenv("NWWSOI_RESOURCE"),
 	})
 	if err != nil {
 		slog.Error(err.Error())
