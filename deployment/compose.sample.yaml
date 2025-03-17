@@ -6,8 +6,8 @@ services:
       context: database
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - wits:/var/lib/postgresql/data
       - ./database/config/postgres.conf:/etc/postgresql/postgresql.conf
@@ -24,8 +24,8 @@ services:
     container_name: pgadmin
     image: dpage/pgadmin4
     environment:
-      - PGADMIN_DEFAULT_EMAIL=radam@wits.com
-      - PGADMIN_DEFAULT_PASSWORD=postgres
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - 5050:80
     volumes:
@@ -39,16 +39,36 @@ services:
     ports:
       - "5672:5672" # AMQP protocol port
       - "15672:15672" # Management UI port
-    # volumes:
-    #   - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-    #   - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
-    #   - rabbitmq_data:/var/lib/rabbitmq
-    #   - rabbitmq_log:/var/log/rabbitmq
+    volumes:
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
     environment:
-      - RABBITMQ_DEFAULT_USER=wits
-      - RABBITMQ_DEFAULT_PASS=wits
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
       - RABBITMQ_LOAD_DEFINITIONS=/etc/rabbitmq/definitions.json
     restart: unless-stopped
+
+  ingest/nwws:
+    image: ghcr.io/therangicrew/wits/ingest/nwws
+    container_name: ingest/nwwsoi
+    ports:
+      - 5222:5222
+    environment:
+      - RABBIT=${RABBIT}
+      - NWWSOI_SERVER=${NWWSOI_SERVER}
+      - NWWSOI_ROOM=${NWWSOI_ROOM}
+      - NWWSOI_USER=${NWWSOI_USER}
+      - NWWSOI_PASS=${NWWSOI_PASS}
+      - NWWSOI_RESOURCE=${NWWSOI_RESOURCE}
+
+  parsing/awips:
+    image: ghcr.io/therangicrew/wits/parsing/awips
+    container_name: parsing/awips
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBIT=${RABBIT}
 
 # Volumes
 volumes:
