@@ -1,0 +1,65 @@
+services:
+  # Postgres Database
+  database:
+    container_name: wits-database
+    build:
+      context: database
+    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - wits:/var/lib/postgresql/data
+      - ./database/config/postgres.conf:/etc/postgresql/postgresql.conf
+      - ./database/config/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - wits
+    ports:
+      - 5432:5432
+
+  # PGAdmin
+  pgadmin:
+    depends_on:
+      - database
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=radam@wits.com
+      - PGADMIN_DEFAULT_PASSWORD=postgres
+    ports:
+      - 5050:80
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    networks:
+      - wits
+
+  rabbit:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    # volumes:
+    #   - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    #   - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+    #   - rabbitmq_data:/var/lib/rabbitmq
+    #   - rabbitmq_log:/var/log/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=wits
+      - RABBITMQ_DEFAULT_PASS=wits
+      - RABBITMQ_LOAD_DEFINITIONS=/etc/rabbitmq/definitions.json
+    restart: unless-stopped
+
+# Volumes
+volumes:
+  wits:
+    name: wits
+  pgadmin:
+    name: pgadmin
+  rabbit_data:
+  rabbit_log:
+
+    # Networks
+networks:
+  wits:
+    name: wits
