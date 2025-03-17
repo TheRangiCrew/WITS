@@ -12,12 +12,12 @@ RUN go mod download
 COPY . ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /awips
+RUN CGO_ENABLED=0 GOOS=linux go build -o /nwws
 
 FROM alpine:latest AS release
 
 WORKDIR /
 
-COPY --from=build /awips /awips
+COPY --from=build /nwws /nwws
 
-ENTRYPOINT [ "/awips", "server", "--minlog", "1" ]
+ENTRYPOINT [ "/nwws", "server", "--minlog", "1" ]
