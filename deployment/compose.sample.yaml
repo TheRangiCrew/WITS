@@ -1,7 +1,8 @@
 services:
   # Postgres Database
   database:
-    container_name: wits-database
+    container_name: witsDB
+    restart: unless-stopped
     build:
       context: database
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
@@ -16,6 +17,11 @@ services:
       - wits
     ports:
       - 5432:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # PGAdmin
   pgadmin:
@@ -36,23 +42,29 @@ services:
   rabbit:
     image: rabbitmq:management
     container_name: rabbitmq
+    restart: unless-stopped
     ports:
       - "5672:5672" # AMQP protocol port
       - "15672:15672" # Management UI port
     volumes:
       - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
-      - rabbitmq_data:/var/lib/rabbitmq
-      - rabbitmq_log:/var/log/rabbitmq
+      - rabbit_data:/var/lib/rabbitmq
+      - rabbit_log:/var/log/rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
       - RABBITMQ_LOAD_DEFINITIONS=/etc/rabbitmq/definitions.json
-    restart: unless-stopped
+    networks:
+      - wits
 
-  ingest/nwws:
-    image: ghcr.io/therangicrew/wits/ingest/nwws
-    container_name: ingest/nwwsoi
+  # ingest/nwws
+  nwws:
+    depends_on:
+      - rabbit
+    image: ghcr.io/therangicrew/wits/ingest/nwws:main
+    container_name: nwwsoi
+    restart: unless-stopped
     ports:
       - 5222:5222
     environment:
@@ -62,13 +74,23 @@ services:
       - NWWSOI_USER=${NWWSOI_USER}
       - NWWSOI_PASS=${NWWSOI_PASS}
       - NWWSOI_RESOURCE=${NWWSOI_RESOURCE}
+    networks:
+      - wits
 
-  parsing/awips:
-    image: ghcr.io/therangicrew/wits/parsing/awips
-    container_name: parsing/awips
+  # parsing/awips
+  awips:
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbit:
+    image: ghcr.io/therangicrew/wits/parsing/awips:main
+    container_name: awips
+    restart: unless-stopped
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - RABBIT=${RABBIT}
+    networks:
+      - wits
 
 # Volumes
 volumes:
