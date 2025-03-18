@@ -163,7 +163,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 			rows, err := handler.db.Query(handler.db.CTX, `
 			SELECT * FROM vtec_event WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
-			`, vtec.WFO[1:], vtec.Phenomena, vtec.Significance, vtec.EventNumber, year)
+			`, vtec.WFO, vtec.Phenomena, vtec.Significance, vtec.EventNumber, year)
 			if err != nil {
 				handler.logger.Error("failed to get vtec_event: " + err.Error())
 				continue
