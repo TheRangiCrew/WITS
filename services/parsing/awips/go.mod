@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/TheRangiCrew/go-nws v0.0.0-20250317080519-2ed2da703677
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.3
 	github.com/joho/godotenv v1.5.1
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/spf13/cobra v1.9.1
