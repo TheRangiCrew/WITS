@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/db"
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/handler"
+	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -19,7 +21,7 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	DB     *db.Pool
+	DB     *pgxpool.Pool
 	Rabbit *amqp.Channel
 	MinLog int
 }
@@ -155,12 +157,12 @@ func (server *Server) InitialiseRabbit() error {
 
 	conn, err := amqp.Dial(os.Getenv("RABBIT"))
 	if err != nil {
-		return fmt.Errorf("failed to connect to RabbitMQ: " + err.Error())
+		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
 	}
 
 	server.Rabbit, err = conn.Channel()
 	if err != nil {
-		return fmt.Errorf("failed to open channel: " + err.Error())
+		return fmt.Errorf("failed to open channel: %s", err.Error())
 	}
 
 	err = server.Rabbit.ExchangeDeclare(
@@ -173,7 +175,7 @@ func (server *Server) InitialiseRabbit() error {
 		nil,               // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("failed to declare exchange: " + err.Error())
+		return fmt.Errorf("failed to declare exchange: %s", err.Error())
 	}
 
 	err = server.Rabbit.ExchangeDeclare(
@@ -186,14 +188,17 @@ func (server *Server) InitialiseRabbit() error {
 		nil,              // arguments
 	)
 	if err != nil {
-		return fmt.Errorf("failed to declare exchange: " + err.Error())
+		return fmt.Errorf("failed to declare exchange: %s", err.Error())
 	}
 
 	return nil
 }
 
 func (server *Server) HeathCheck() error {
-	err := server.DB.Ping(server.DB.CTX)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := server.DB.Ping(ctx)
 	if err != nil {
 		return err
 	}

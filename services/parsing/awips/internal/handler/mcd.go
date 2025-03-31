@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/handler/util"
@@ -29,7 +30,10 @@ func (handler *Handler) mcd(product *awips.TextProduct, receivedAt time.Time) er
 		issued := time.Date(product.Issued.Year(), product.Issued.Month(), mcdProduct.Issued.Day(), mcdProduct.Issued.Hour(), mcdProduct.Issued.Minute(), 0, 0, time.UTC)
 		expires := time.Date(segment.Expires.Year(), segment.Expires.Month(), mcdProduct.Expires.Day(), mcdProduct.Expires.Hour(), mcdProduct.Expires.Minute(), 0, 0, time.UTC)
 
-		_, err = handler.db.Exec(handler.db.CTX, `
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err = handler.db.Exec(ctx, `
 		INSERT INTO mcd (id, product, issued, expires, year, concerning, geom, watch_probability) VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8);
 		`, mcdProduct.Number, textProduct.ProductID, issued, expires, textProduct.Issued.Year(), mcdProduct.Concerning, &polygon, mcdProduct.WatchProbability)
