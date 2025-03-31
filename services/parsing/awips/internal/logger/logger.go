@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/db"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type LogRecord struct {
@@ -17,7 +18,7 @@ type LogRecord struct {
 
 type Logger struct {
 	logger  *slog.Logger
-	db      *db.Pool
+	db      *pgxpool.Pool
 	Product string      `json:"product,omitempty"`
 	AWIPS   string      `json:"awips,omitempty"`
 	WMO     string      `json:"wmo,omitempty"`
@@ -25,7 +26,7 @@ type Logger struct {
 	Records []LogRecord `json:"-"`
 }
 
-func New(db *db.Pool, level slog.Level) Logger {
+func New(db *pgxpool.Pool, level slog.Level) Logger {
 
 	opts := &slog.HandlerOptions{
 		Level: level,
@@ -56,16 +57,16 @@ func (logger *Logger) Info(msg string) {
 	logger.logger.Info(msg)
 }
 
-func (logger *Logger) Warn(msg string) {
+func (logger *Logger) Warn(msg string, args ...any) {
 	logger.addRecord(msg, slog.LevelWarn)
 
-	logger.logger.Warn(msg)
+	logger.logger.Warn(msg, args...)
 }
 
-func (logger *Logger) Error(msg string) {
+func (logger *Logger) Error(msg string, args ...any) {
 	logger.addRecord(msg, slog.LevelError)
 
-	logger.logger.Error(msg)
+	logger.logger.Error(msg, args...)
 }
 
 func (logger *Logger) Save() error {
