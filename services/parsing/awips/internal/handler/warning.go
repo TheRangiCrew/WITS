@@ -52,8 +52,16 @@ type Warning struct {
 }
 
 func (handler *vtecHandler) warning(update VTECUpdate) error {
+	// If the warning ends more than 36 hours ago, ignore it since it may be old data
+	if update.Ends.Before(time.Now().Add(-(time.Hour * 36))) {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	// Lets check if the Warning is already in the database
-	rows, err := handler.db.Query(handler.db.CTX, `
+	rows, err := handler.db.Query(ctx, `
 			SELECT * FROM warning WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, update.WFO, update.Phenomena, update.Significance, update.EventNumber, update.Year)
@@ -61,10 +69,16 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 		handler.logger.Error("failed to get warning: " + err.Error())
 		return err
 	}
+	defer rows.Close()
 
 	var warning *Warning
 
 	if !rows.Next() {
+		if rows.Err() != nil {
+			handler.logger.Error("failed to get warning: " + rows.Err().Error())
+			return err
+		}
+
 		if update.Action != "CAN" && update.Action != "EXP" && update.Action != "UPG" {
 			warning = &Warning{
 				Issued:        update.Issued,
@@ -228,7 +242,10 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 		warning.SnowSquall = update.SnowSquall
 		warning.SnowSquallTag = update.SnowSquallTag
 
-		_, err := handler.db.Exec(handler.db.CTX, `
+		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		_, err := handler.db.Exec(ctx, `
 		UPDATE warning SET updated_at = $1, expires = $2, ends = $3, text = $4, action = $5, title = $6, 
     is_emergency = $7, is_pds = $8, polygon = $9, direction = $10, location = $11, speed = $12, 
     speed_text = $13, tml_time = $14, ugc = $15, tornado = $16, damage = $17, hail_threat = $18, 
