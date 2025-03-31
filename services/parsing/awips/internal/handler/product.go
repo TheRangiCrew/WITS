@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/TheRangiCrew/go-nws/pkg/awips"
@@ -55,6 +56,22 @@ func (handler *Handler) TextProduct(product *awips.TextProduct, receivedAt time.
 		err = rows.Scan(&textProduct.ID, &textProduct.CreatedAt)
 		return &textProduct, err
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 
 	return nil, errors.New("no rows returned when creating new text product: " + rows.Err().Error())
+}
+
+func (product *TextProduct) isCorrection() bool {
+	resent := regexp.MustCompile("...(RESENT|RETRANSMITTED|CORRECTED)")
+
+	if len(resent.FindString(product.Data)) > 0 {
+		return true
+	}
+	if len(product.BBB) > 0 && (string(product.BBB[0]) == "A" || string(product.BBB[0]) == "C") {
+		return true
+	}
+
+	return false
 }
