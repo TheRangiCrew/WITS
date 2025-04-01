@@ -2,6 +2,8 @@ github.com/TheRangiCrew/go-nws v0.0.0-20250317080519-2ed2da703677 h1:X3QBioOFSVp
 github.com/TheRangiCrew/go-nws v0.0.0-20250317080519-2ed2da703677/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
 github.com/TheRangiCrew/go-nws v0.0.0-20250331215717-190a22d628b3 h1:s+Mmj3Qk5SWpi9eWYNW5nwA3a5axRkm++8M/nLupcww=
 github.com/TheRangiCrew/go-nws v0.0.0-20250331215717-190a22d628b3/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
+github.com/TheRangiCrew/go-nws v0.0.0-20250401002709-a487df4a632b h1:gxDFuAmoeMqu4HGPtihM3Nuz+gEo7yCv+/06umSwtag=
+github.com/TheRangiCrew/go-nws v0.0.0-20250401002709-a487df4a632b/go.mod h1:zjE7mZLumg+FkzQrTsgev47hrB/z5GMz1STQVlBri5k=
 github.com/alecthomas/assert/v2 v2.11.0 h1:2Q9r3ki8+JYXvGsDyBXwH3LcJ+WK5D0gc5E8vS6K3D0=
 github.com/alecthomas/assert/v2 v2.11.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
 github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc=

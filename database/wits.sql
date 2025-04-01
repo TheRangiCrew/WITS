@@ -241,6 +241,9 @@ CREATE TABLE mcd (
     concerning varchar(255) NOT NULL,
     geom geometry(Polygon, 4326) NOT NULL,
     watch_probability int,
+    most_prob_tornado text,
+    most_prob_gust text,
+    most_prob_hail text,
 	PRIMARY KEY (id, year)
 ) PARTITION BY LIST (year);
 
