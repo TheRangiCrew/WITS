@@ -26,7 +26,7 @@ type TextProduct struct {
 
 func (handler *Handler) TextProduct(product *awips.TextProduct, receivedAt time.Time) (*TextProduct, error) {
 
-	id := fmt.Sprintf("%s-%s-%s-%s", product.Issued.Format("200601021504"), product.Office, product.WMO.Datatype, product.AWIPS.Original)
+	id := fmt.Sprintf("%s-%s-%s-%s", product.Issued.UTC().Format("200601021504"), product.Office, product.WMO.Datatype, product.AWIPS.Original)
 
 	if len(product.WMO.BBB) > 0 {
 		id += "-" + product.WMO.BBB
@@ -44,7 +44,7 @@ func (handler *Handler) TextProduct(product *awips.TextProduct, receivedAt time.
 	}
 
 	rows, err := handler.db.Query(context.Background(), `
-	INSERT INTO product (product_id, received_at, issued, source, data, wmo, awips, bbb) VALUES
+	INSERT INTO awips.products (product_id, received_at, issued, source, data, wmo, awips, bbb) VALUES
 	($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at;
 	`, id, receivedAt, product.Issued, product.AWIPS.WFO, product.Text, product.WMO.Datatype, product.AWIPS.Original, product.WMO.BBB)
 	if err != nil {

@@ -1,4 +1,4 @@
-INSERT INTO office (id, icao, name, state, location) VALUES
+INSERT INTO postgis.offices (id, icao, name, state, location) VALUES
 ('ABQ', 'KABQ', 'Albuquerque', 'NM', ST_SetSRID(ST_MakePoint(-106.016611696, 35.1125387845), 4326)),
 ('ABR', 'KABR', 'Aberdeen', 'SD', ST_SetSRID(ST_MakePoint(-99.1578687708, 45.0559400154), 4326)),
 ('AFC', 'PAFC', 'Anchorage', 'AK', ST_SetSRID(ST_MakePoint(-149.9837768660223, 61.15634438423011), 4326)),

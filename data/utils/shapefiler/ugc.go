@@ -26,7 +26,7 @@ type UGC struct {
 }
 
 func ToSQL(ugcs []UGC) (string, error) {
-	result := "INSERT INTO ugc(ugc, name, state, type, number, area, geom, cwa, is_marine, is_fire, valid_from) VALUES \n"
+	result := "INSERT INTO postgis.ugcs(ugc, name, state, type, number, area, geom, cwa, is_marine, is_fire, valid_from) VALUES \n"
 
 	for _, ugc := range ugcs {
 
