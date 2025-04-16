@@ -170,7 +170,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 
 			// Lets check if the VTEC Event is already in the database
 			rows, err := handler.db.Query(ctx, `
-			SELECT * FROM vtec_event WHERE
+			SELECT * FROM vtec.events WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, vtec.WFO, vtec.Phenomena, vtec.Significance, vtec.EventNumber, year)
 			if err != nil {
@@ -224,7 +224,7 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 
 				// Insert the event
 				_, err := handler.db.Exec(context.Background(), `
-				INSERT INTO vtec_event(issued, starts, expires, ends, end_initial, class, phenomena, wfo, 
+				INSERT INTO vtec.events(issued, starts, expires, ends, end_initial, class, phenomena, wfo, 
 				significance, event_number, year, title, is_emergency, is_pds, polygon_start) VALUES
 				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
 				`, event.Issued, event.Starts, event.Expires, event.Ends, event.EndInitial, event.Class,
@@ -324,7 +324,7 @@ func (handler *vtecHandler) update() {
 	defer cancel()
 
 	_, err := handler.db.Exec(ctx, `
-	UPDATE vtec_event SET updated_at = CURRENT_TIMESTAMP, is_emergency = $6, is_pds = $7 WHERE
+	UPDATE vtec.events SET updated_at = CURRENT_TIMESTAMP, is_emergency = $6, is_pds = $7 WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, vtec.WFO, vtec.Phenomena, vtec.Significance, vtec.EventNumber, handler.event.Year, segment.IsEmergency(), segment.IsPDS())
 	if err != nil {
@@ -447,7 +447,7 @@ func (handler *vtecHandler) createUpdates() error {
 
 	_, err := handler.db.CopyFrom(
 		context.Background(),
-		pgx.Identifier{"vtec_update"},
+		pgx.Identifier{"vtec", "updates"},
 		[]string{"issued", "starts", "expires", "ends", "text", "product", "wfo", "action", "class", "phenomena", "significance", "event_number", "year", "title", "is_emergency", "is_pds", "polygon", "direction", "location", "speed", "speed_text", "tml_time", "ugc", "tornado", "damage", "hail_threat", "hail_tag", "wind_threat", "wind_tag", "flash_flood", "rainfall_tag", "flood_tag_dam", "spout_tag", "snow_squall", "snow_squall_tag"},
 		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
 			return []any{
@@ -494,7 +494,7 @@ func (handler *vtecHandler) ugcNEW() error {
 		defer cancel()
 
 		rows, err := handler.db.Query(ctx, `
-		SELECT * FROM vtec_ugc WHERE year = $1 AND wfo = $2 AND phenomena = $3 AND
+		SELECT * FROM vtec.ugcs WHERE year = $1 AND wfo = $2 AND phenomena = $3 AND
 		significance = $4 AND event_number = $5 AND ugc = $6 AND
 		action NOT IN ('CAN', 'UPG') AND expires > $7`,
 			event.Year, event.WFO, event.Phenomena, event.Significance, event.EventNumber, ugc.ID, expires)
@@ -513,7 +513,7 @@ func (handler *vtecHandler) ugcNEW() error {
 
 				// Delete the old UGC record
 				_, err = handler.db.Exec(ctx, `
-				DELETE vtec_ugc WHERE year = $1 AND wfo = $2 AND phenomena = $3 AND
+				DELETE vtec.ugcs WHERE year = $1 AND wfo = $2 AND phenomena = $3 AND
 		significance = $4 AND event_number = $5 AND ugc = $6 AND
 		action NOT IN ('NEW', 'EXB', 'EXA')`,
 					event.Year, event.WFO, event.Phenomena, event.Significance, event.EventNumber, ugc.ID)
@@ -557,7 +557,7 @@ func (handler *vtecHandler) ugcNEW() error {
 
 	_, err := handler.db.CopyFrom(
 		ctx,
-		pgx.Identifier{"vtec_ugc"},
+		pgx.Identifier{"vtec", "ugcs"},
 		[]string{"wfo", "phenomena", "significance", "event_number", "ugc", "issued", "starts", "expires", "ends",
 			"end_initial", "action", "year"},
 		pgx.CopyFromSlice(len(relations), func(i int) ([]any, error) {
@@ -601,7 +601,7 @@ func (handler *vtecHandler) updateUGC() error {
 	defer cancel()
 
 	_, err := handler.db.Exec(ctx, `
-	UPDATE vtec_ugc SET expires = $1, ends = $2, action = $3 WHERE
+	UPDATE vtec.ugcs SET expires = $1, ends = $2, action = $3 WHERE
 	wfo = $4 AND phenomena = $5 AND significance = $6 AND event_number = $7 AND year = $8
 	AND ugc = ANY($9)
 	`, expires, end, vtec.Action, event.WFO, event.Phenomena, event.Significance, event.EventNumber,
@@ -631,7 +631,7 @@ func (handler *vtecHandler) segmentUGC() error {
 
 				// Find all UGC codes from the state
 				rows, err := handler.db.Query(ctx, `
-				SELECT ugc FROM ugc WHERE state = $1 AND type = $2 AND is_fire = $3 AND valid_to IS NULL;
+				SELECT ugc FROM postgis.ugcs WHERE state = $1 AND type = $2 AND is_fire = $3 AND valid_to IS NULL;
 				`, state.ID, state.Type, isFire)
 				if err != nil {
 					return fmt.Errorf("error retrieving ALL ugc: %s", err.Error())
@@ -665,7 +665,7 @@ func (handler *vtecHandler) segmentUGC() error {
 	defer cancel()
 
 	rows, err := handler.db.Query(ctx, `
-	SELECT id, ugc FROM ugc WHERE ugc = ANY($1) AND valid_to IS NULL
+	SELECT id, ugc FROM postgis.ugcs WHERE ugc = ANY($1) AND valid_to IS NULL
 	`, ids)
 	if err != nil {
 		return fmt.Errorf("error retrieving listed ugcs: %s", err.Error())

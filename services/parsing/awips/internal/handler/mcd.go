@@ -34,7 +34,7 @@ func (handler *Handler) mcd(product *awips.TextProduct, receivedAt time.Time) er
 		defer cancel()
 
 		_, err = handler.db.Exec(ctx, `
-		INSERT INTO mcd (id, product, issued, expires, year, concerning, geom, watch_probability, most_prob_tornado, most_prob_gust, most_prob_hail) VALUES
+		INSERT INTO mcd.mcd (id, product, issued, expires, year, concerning, geom, watch_probability, most_prob_tornado, most_prob_gust, most_prob_hail) VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 		`, mcdProduct.Number, textProduct.ProductID, issued, expires, textProduct.Issued.Year(), mcdProduct.Concerning, &polygon, mcdProduct.WatchProbability, mcdProduct.MostProbTornado, mcdProduct.MostProbGust, mcdProduct.MostProbHail)
 		if err != nil {

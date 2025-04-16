@@ -62,7 +62,7 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 
 	// Lets check if the Warning is already in the database
 	rows, err := handler.db.Query(ctx, `
-			SELECT * FROM warning WHERE
+			SELECT * FROM vtec.warnings WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, update.WFO, update.Phenomena, update.Significance, update.EventNumber, update.Year)
 	if err != nil {
@@ -120,7 +120,7 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 
 			_, err := handler.db.CopyFrom(
 				context.Background(),
-				pgx.Identifier{"warning"},
+				pgx.Identifier{"vtec", "warnings"},
 				[]string{"issued", "starts", "expires", "ends", "end_initial", "text", "wfo", "action", "class", "phenomena", "significance", "event_number", "year", "title", "is_emergency", "is_pds", "polygon", "direction", "location", "speed", "speed_text", "tml_time", "ugc", "tornado", "damage", "hail_threat", "hail_tag", "wind_threat", "wind_tag", "flash_flood", "rainfall_tag", "flood_tag_dam", "spout_tag", "snow_squall", "snow_squall_tag"},
 				pgx.CopyFromRows([][]interface{}{
 					{
@@ -246,7 +246,7 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 		defer cancel()
 
 		_, err := handler.db.Exec(ctx, `
-		UPDATE warning SET updated_at = $1, expires = $2, ends = $3, text = $4, action = $5, title = $6, 
+		UPDATE vtec.warnings SET updated_at = $1, expires = $2, ends = $3, text = $4, action = $5, title = $6, 
     is_emergency = $7, is_pds = $8, polygon = $9, direction = $10, location = $11, speed = $12, 
     speed_text = $13, tml_time = $14, ugc = $15, tornado = $16, damage = $17, hail_threat = $18, 
     hail_tag = $19, wind_threat = $20, wind_tag = $21, flash_flood = $22, rainfall_tag = $23, 
