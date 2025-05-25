@@ -1,6 +1,6 @@
 module github.com/TheRangiCrew/WITS/services/ingest/nwws
 
-go 1.24.2
+go 1.24.3
 
 require github.com/spf13/cobra v1.9.1
 
@@ -9,7 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/xmppo/go-xmpp v0.2.13
-	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
+	github.com/xmppo/go-xmpp v0.2.14
+	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
 )
