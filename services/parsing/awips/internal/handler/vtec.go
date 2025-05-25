@@ -392,14 +392,20 @@ func (handler *vtecHandler) createUpdates() error {
 	}
 
 	var direction *int
-	var location *geos.Geom
+	var locations *geos.Geom
 	var speed *int
 	var speedText *string
 	var tmlTime *time.Time
 	if segment.TML != nil {
 		direction = &segment.TML.Direction
-		point := geos.NewPoint(segment.TML.Location[:])
-		location = point
+
+		points := []*geos.Geom{}
+		for _, location := range segment.TML.Locations {
+			point := geos.NewPoint(location[:])
+			points = append(points, point)
+		}
+		locations = geos.NewCollection(geos.TypeIDMultiPoint, points)
+
 		speed = &segment.TML.Speed
 		speedText = &segment.TML.SpeedString
 		tmlTime = &segment.TML.Time
@@ -425,7 +431,7 @@ func (handler *vtecHandler) createUpdates() error {
 			IsPDS:         segment.IsPDS(),
 			Polygon:       polygon,
 			Direction:     direction,
-			Location:      location,
+			Location:      locations,
 			Speed:         speed,
 			SpeedText:     speedText,
 			TMLTime:       tmlTime,
