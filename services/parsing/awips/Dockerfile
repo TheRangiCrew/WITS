@@ -1,4 +1,4 @@
-FROM golang:1.24.2 AS build
+FROM golang:1.24.3 AS build
 
 # Install GEOS
 RUN apt-get update && apt-get install -y libgeos-dev
