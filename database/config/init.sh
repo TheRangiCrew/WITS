@@ -20,7 +20,7 @@ done
 PGPASSWORD=$DB_PASS psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "ALTER DATABASE wits SET search_path = public, postgis, awips, vtec, mcd"
 
 # Load data
-for sql_file in states offices vtec; do
+for sql_file in states offices vtec cron; do
     echo "Running $sql_file"
     PGPASSWORD=$DB_PASS psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f "../data/$sql_file.sql"
 done
