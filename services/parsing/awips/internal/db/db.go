@@ -11,12 +11,7 @@ import (
 	pgxgeos "github.com/twpayne/pgx-geos"
 )
 
-type Pool struct {
-	*pgxpool.Pool
-	CTX context.Context
-}
-
-func New() (*Pool, error) {
+func New() (*pgxpool.Pool, error) {
 	ctx := context.Background()
 
 	config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
@@ -38,8 +33,5 @@ func New() (*Pool, error) {
 
 	slog.Info("\033[32m *** Database connected *** \033[m")
 
-	return &Pool{
-		Pool: pool,
-		CTX:  ctx,
-	}, err
+	return pool, err
 }

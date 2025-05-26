@@ -1,22 +1,13 @@
 package server
 
 import (
-	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/handler"
 )
 
-func ParseText(filename string, minLog int) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	text := string(data)
+func ParseText(text string, minLog int) {
 
 	config := ServerConfig{
 		MinLog: minLog,
@@ -33,8 +24,6 @@ func ParseText(filename string, minLog int) {
 		slog.Error(err.Error())
 		return
 	}
-
-	slog.Info(fmt.Sprintf("Parsing %s", filename))
 
 	h.Handle(text, time.Now())
 

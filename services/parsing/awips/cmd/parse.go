@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/server"
 	"github.com/joho/godotenv"
@@ -35,6 +37,18 @@ var parseCmd = &cobra.Command{
 			godotenv.Load(DotEnv)
 		}
 
-		server.ParseText(args[0], Log)
+		filename := args[0]
+
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			slog.Error(err.Error())
+			return
+		}
+
+		text := string(data)
+
+		slog.Info(fmt.Sprintf("Parsing %s", filename))
+
+		server.ParseText(text, Log)
 	},
 }

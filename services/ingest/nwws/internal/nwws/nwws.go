@@ -3,7 +3,6 @@ package nwws
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -96,12 +95,8 @@ func (nwws *NWWS) Start(feed chan *Message) {
 	for {
 		chat, err := nwws.client.Recv()
 		if err != nil {
-			log.Println(err)
-			err = nwws.client.Close()
-			if err != nil {
-				log.Println(err)
-			}
-			break
+			slog.Error(err.Error())
+			continue
 		}
 
 		switch v := chat.(type) {

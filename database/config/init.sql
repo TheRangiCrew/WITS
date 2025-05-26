@@ -1,4 +1,0 @@
-CREATE EXTENSION pg_cron;
-
-CREATE SCHEMA wits;
-

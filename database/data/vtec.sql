@@ -8,6 +8,7 @@ INSERT INTO phenomena (id, name) VALUES
 ('CW', 'Cold Weather'),
 ('DF', 'Debris Flow'),
 ('DS', 'Dust Storm'),
+('DU', 'Blowing Dust'),
 ('EC', 'Extreme Cold'),
 ('EH', 'Excessive Heat'),
 ('EW', 'Extreme Wind'),

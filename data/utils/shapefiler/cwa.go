@@ -95,7 +95,7 @@ func ParseCWA(scanner *shapefile.ZipScanner, t time.Time) error {
 		return err
 	}
 
-	result := "INSERT INTO cwa(id, name, area, geom, wfo, region, valid_from) VALUES\n"
+	result := "INSERT INTO postgis.cwas(id, name, area, geom, wfo, region, valid_from) VALUES\n"
 
 	for _, cwa := range cwaRecords {
 		geometry, err := orbjson.NewGeometry(cwa.Geometry).MarshalJSON()

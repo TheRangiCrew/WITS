@@ -8,20 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/db"
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/logger"
 	"github.com/TheRangiCrew/go-nws/pkg/awips"
+	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Handler struct {
 	logger *logger.Logger
-	db     *db.Pool
+	db     *pgxpool.Pool
 	rabbit *amqp.Channel
 	ctx    context.Context
 }
 
-func New(db *db.Pool, minLog int) (*Handler, error) {
+func New(db *pgxpool.Pool, minLog int) (*Handler, error) {
 
 	l := logger.New(db, slog.Level(minLog))
 
@@ -51,17 +51,6 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		return nil
 	}
 
-	// Find the issue time
-	issued, err := awips.GetIssuedTime(text)
-	if err != nil {
-		handler.logger.Error(err.Error())
-		return err
-	}
-	if issued.IsZero() {
-		handler.logger.Info("Product does not contain issue date. Defaulting to now (UTC)")
-		issued = time.Now().UTC()
-	}
-
 	// Get the AWIPS header
 	awipsHeader, err := awips.ParseAWIPS(text)
 	if err != nil {
@@ -79,6 +68,17 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		return nil
 	} else {
 		handler.logger.SetAWIPS(awipsHeader.Original)
+	}
+
+	// Find the issue time
+	issued, err := awips.GetIssuedTime(text)
+	if err != nil {
+		handler.logger.Error(err.Error())
+		return err
+	}
+	if issued.IsZero() {
+		handler.logger.Info("Product does not contain issue date. Defaulting to now (UTC)")
+		issued = time.Now().UTC()
 	}
 
 	// Segment the product
