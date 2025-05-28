@@ -1,11 +1,13 @@
-package handler
+package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/twpayne/go-geos"
 )
 
@@ -51,6 +53,47 @@ type Warning struct {
 	SnowSquallTag string
 }
 
+type WarningMessage struct {
+	ID            int             `json:"id"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	Issued        time.Time       `json:"issued"`
+	Starts        time.Time       `json:"starts"`
+	Expires       time.Time       `json:"expires"`
+	Ends          time.Time       `json:"ends"`
+	EndInitial    time.Time       `json:"endInitial"`
+	Text          string          `json:"text"`
+	WFO           string          `json:"wfo"`
+	Action        string          `json:"action"`
+	Class         string          `json:"class"`
+	Phenomena     string          `json:"phenomena"`
+	Significance  string          `json:"significance"`
+	EventNumber   int             `json:"eventNumber"`
+	Year          int             `json:"year"`
+	Title         string          `json:"title"`
+	IsEmergency   bool            `json:"isEmergency"`
+	IsPDS         bool            `json:"isPDS"`
+	Polygon       json.RawMessage `json:"polygon,omitempty"`
+	Direction     *int            `json:"direction"`
+	Locations     json.RawMessage `json:"locations"`
+	Speed         *int            `json:"speed"`
+	SpeedText     *string         `json:"speed_text"`
+	TMLTime       *time.Time      `json:"tmlTime"`
+	UGC           []string        `json:"ugc"`
+	Tornado       string          `json:"tornado"`
+	Damage        string          `json:"damage"`
+	HailThreat    string          `json:"hailThreat"`
+	HailTag       string          `json:"hailTag"`
+	WindThreat    string          `json:"windThreat"`
+	WindTag       string          `json:"windTag"`
+	FlashFlood    string          `json:"flashFlood"`
+	RainfallTag   string          `json:"rainfallTag"`
+	FloodTagDam   string          `json:"floodTagDam"`
+	SpoutTag      string          `json:"spoutTag"`
+	SnowSquall    string          `json:"snowSquall"`
+	SnowSquallTag string          `json:"snowSquallTag"`
+}
+
 func (handler *vtecHandler) warning(update VTECUpdate) error {
 	// If the warning ends more than 36 hours ago, ignore it since it may be old data
 	if update.Ends.Before(time.Now().Add(-(time.Hour * 36))) {
@@ -61,7 +104,7 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 	defer cancel()
 
 	// Lets check if the Warning is already in the database
-	rows, err := handler.db.Query(ctx, `
+	rows, err := handler.DB.Query(ctx, `
 			SELECT * FROM vtec.warnings WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, update.WFO, update.Phenomena, update.Significance, update.EventNumber, update.Year)
@@ -79,46 +122,47 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 			return err
 		}
 
-		if update.Action != "CAN" && update.Action != "EXP" && update.Action != "UPG" {
-			warning = &Warning{
-				Issued:        update.Issued,
-				Starts:        update.Starts,
-				Expires:       update.Expires,
-				Ends:          update.Ends,
-				EndInitial:    update.Ends,
-				Text:          update.Text,
-				WFO:           update.WFO,
-				Action:        update.Action,
-				Class:         update.Class,
-				Phenomena:     update.Phenomena,
-				Significance:  update.Significance,
-				EventNumber:   update.EventNumber,
-				Year:          update.Year,
-				Title:         update.Title,
-				IsEmergency:   update.IsEmergency,
-				IsPDS:         update.IsPDS,
-				Polygon:       update.Polygon,
-				Direction:     update.Direction,
-				Location:      update.Location,
-				Speed:         update.Speed,
-				SpeedText:     update.SpeedText,
-				TMLTime:       update.TMLTime,
-				UGC:           update.UGC,
-				Tornado:       update.Tornado,
-				Damage:        update.Damage,
-				HailThreat:    update.HailThreat,
-				HailTag:       update.HailTag,
-				WindThreat:    update.WindThreat,
-				WindTag:       update.WindTag,
-				FlashFlood:    update.FlashFlood,
-				RainfallTag:   update.RainfallTag,
-				FloodTagDam:   update.FloodTagDam,
-				SpoutTag:      update.SpoutTag,
-				SnowSquall:    update.SnowSquall,
-				SnowSquallTag: update.SnowSquallTag,
-			}
+		warning = &Warning{
+			Issued:        update.Issued,
+			Starts:        update.Starts,
+			Expires:       update.Expires,
+			Ends:          update.Ends,
+			EndInitial:    update.Ends,
+			Text:          update.Text,
+			WFO:           update.WFO,
+			Action:        update.Action,
+			Class:         update.Class,
+			Phenomena:     update.Phenomena,
+			Significance:  update.Significance,
+			EventNumber:   update.EventNumber,
+			Year:          update.Year,
+			Title:         update.Title,
+			IsEmergency:   update.IsEmergency,
+			IsPDS:         update.IsPDS,
+			Polygon:       update.Polygon,
+			Direction:     update.Direction,
+			Location:      update.Location,
+			Speed:         update.Speed,
+			SpeedText:     update.SpeedText,
+			TMLTime:       update.TMLTime,
+			UGC:           update.UGC,
+			Tornado:       update.Tornado,
+			Damage:        update.Damage,
+			HailThreat:    update.HailThreat,
+			HailTag:       update.HailTag,
+			WindThreat:    update.WindThreat,
+			WindTag:       update.WindTag,
+			FlashFlood:    update.FlashFlood,
+			RainfallTag:   update.RainfallTag,
+			FloodTagDam:   update.FloodTagDam,
+			SpoutTag:      update.SpoutTag,
+			SnowSquall:    update.SnowSquall,
+			SnowSquallTag: update.SnowSquallTag,
+		}
 
-			_, err := handler.db.CopyFrom(
+		if update.Action != "CAN" && update.Action != "EXP" && update.Action != "UPG" {
+
+			_, err := handler.DB.CopyFrom(
 				context.Background(),
 				pgx.Identifier{"vtec", "warnings"},
 				[]string{"issued", "starts", "expires", "ends", "end_initial", "text", "wfo", "action", "class", "phenomena", "significance", "event_number", "year", "title", "is_emergency", "is_pds", "polygon", "direction", "location", "speed", "speed_text", "tml_time", "ugc", "tornado", "damage", "hail_threat", "hail_tag", "wind_threat", "wind_tag", "flash_flood", "rainfall_tag", "flood_tag_dam", "spout_tag", "snow_squall", "snow_squall_tag"},
@@ -245,13 +289,13 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		_, err := handler.db.Exec(ctx, `
+		_, err := handler.DB.Exec(ctx, `
 		UPDATE vtec.warnings SET updated_at = $1, expires = $2, ends = $3, text = $4, action = $5, title = $6, 
-    is_emergency = $7, is_pds = $8, polygon = $9, direction = $10, location = $11, speed = $12, 
-    speed_text = $13, tml_time = $14, ugc = $15, tornado = $16, damage = $17, hail_threat = $18, 
-    hail_tag = $19, wind_threat = $20, wind_tag = $21, flash_flood = $22, rainfall_tag = $23, 
-    flood_tag_dam = $24, spout_tag = $25, snow_squall = $26, snow_squall_tag = $27
-	WHERE wfo = $28 AND phenomena = $29 AND significance = $30 AND event_number = $31 AND year = $32
+    	is_emergency = $7, is_pds = $8, polygon = $9, direction = $10, location = $11, speed = $12, 
+    	speed_text = $13, tml_time = $14, ugc = $15, tornado = $16, damage = $17, hail_threat = $18, 
+    	hail_tag = $19, wind_threat = $20, wind_tag = $21, flash_flood = $22, rainfall_tag = $23, 
+    	flood_tag_dam = $24, spout_tag = $25, snow_squall = $26, snow_squall_tag = $27
+		WHERE wfo = $28 AND phenomena = $29 AND significance = $30 AND event_number = $31 AND year = $32
 		`, time.Now().UTC(), warning.Expires, warning.Ends, warning.Text, warning.Action, warning.Title,
 			warning.IsEmergency, warning.IsPDS, warning.Polygon, warning.Direction, warning.Location, warning.Speed,
 			warning.SpeedText, warning.TMLTime, warning.UGC, warning.Tornado, warning.Damage, warning.HailThreat, warning.HailTag,
@@ -264,5 +308,76 @@ func (handler *vtecHandler) warning(update VTECUpdate) error {
 		}
 	}
 
-	return nil
+	var polygon json.RawMessage = nil
+	if warning.Polygon != nil {
+		polygonGeoJSON := warning.Polygon.ToGeoJSON(1)
+		polygon = json.RawMessage(polygonGeoJSON)
+	}
+	var location json.RawMessage = nil
+	if warning.Location != nil {
+		locationGeoJSON := warning.Location.ToGeoJSON(1)
+		location = json.RawMessage(locationGeoJSON)
+	}
+
+	warningMessage := WarningMessage{
+		ID:            warning.ID,
+		CreatedAt:     warning.CreatedAt,
+		UpdatedAt:     warning.UpdatedAt,
+		Issued:        warning.Issued,
+		Starts:        warning.Starts,
+		Expires:       warning.Expires,
+		Ends:          warning.Ends,
+		EndInitial:    warning.EndInitial,
+		Text:          warning.Text,
+		WFO:           warning.WFO,
+		Action:        warning.Action,
+		Class:         warning.Class,
+		Phenomena:     warning.Phenomena,
+		Significance:  warning.Significance,
+		EventNumber:   warning.EventNumber,
+		Year:          warning.Year,
+		Title:         warning.Title,
+		IsEmergency:   warning.IsEmergency,
+		IsPDS:         warning.IsPDS,
+		Polygon:       polygon,
+		Direction:     warning.Direction,
+		Locations:     location,
+		Speed:         warning.Speed,
+		SpeedText:     warning.SpeedText,
+		TMLTime:       warning.TMLTime,
+		UGC:           warning.UGC,
+		Tornado:       warning.Tornado,
+		Damage:        warning.Damage,
+		HailThreat:    warning.HailThreat,
+		HailTag:       warning.HailTag,
+		WindThreat:    warning.WindThreat,
+		WindTag:       warning.WindTag,
+		FlashFlood:    warning.FlashFlood,
+		RainfallTag:   warning.RainfallTag,
+		FloodTagDam:   warning.FloodTagDam,
+		SpoutTag:      warning.SpoutTag,
+		SnowSquall:    warning.SnowSquall,
+		SnowSquallTag: warning.SnowSquallTag,
+	}
+
+	message, err := json.Marshal(warningMessage)
+	if err != nil {
+		handler.logger.Error("failed to marshal warning message: " + err.Error())
+		return err
+	}
+
+	publisher, err := handler.GetPublisher(RealtimeExchange)
+	if err != nil {
+		handler.logger.Error("failed to get publisher: "+err.Error(), "publisher", RealtimeExchange)
+		return err
+	}
+	err = publisher.PublishWithContext(context.Background(), RealtimeExchange, "realtime.warnings", false, false, amqp.Publishing{
+		ContentType: "application/json",
+		Body:        message,
+	})
+	if err != nil {
+		handler.logger.Error("failed to publish warning message: " + err.Error())
+	}
+
+	return err
 }

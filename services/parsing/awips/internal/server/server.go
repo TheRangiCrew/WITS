@@ -11,9 +11,12 @@ import (
 	"time"
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/db"
-	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/handler"
 	"github.com/jackc/pgx/v5/pgxpool"
 	amqp "github.com/rabbitmq/amqp091-go"
+)
+
+const (
+	RealtimeExchange = "realtime.exchange"
 )
 
 type ServerConfig struct {
@@ -21,9 +24,10 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	DB     *pgxpool.Pool
-	Rabbit *amqp.Channel
-	MinLog int
+	DB         *pgxpool.Pool
+	Rabbit     *amqp.Connection
+	Publishers map[string]*amqp.Channel
+	config     ServerConfig
 }
 
 type Message struct {
@@ -32,14 +36,21 @@ type Message struct {
 }
 
 func New(config ServerConfig) (*Server, error) {
+	// Create a new database connection pool
 	db, err := db.New()
 	if err != nil {
 		return nil, err
 	}
 
+	rabbit, err := newRabbitConnection()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
+	}
+
 	server := Server{
 		DB:     db,
-		MinLog: config.MinLog,
+		Rabbit: rabbit,
+		config: config,
 	}
 
 	return &server, nil
@@ -47,10 +58,12 @@ func New(config ServerConfig) (*Server, error) {
 
 func (server *Server) Start() {
 
+	// Set up interrupt signals
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	stop := make(chan bool, 1)
 
+	// Perform health check, not sure if this does anything useful
 	err := server.HeathCheck()
 	if err != nil {
 		slog.Error(err.Error())
@@ -58,14 +71,22 @@ func (server *Server) Start() {
 		return
 	}
 
-	err = server.InitialiseRabbit()
+	// Initialis
+	err = server.initialiseRabbit()
 	if err != nil {
 		slog.Error(err.Error())
 		slog.Info("Stopping...")
 		return
 	}
 
-	q, err := server.Rabbit.QueueDeclare(
+	channel, err := server.Rabbit.Channel()
+	if err != nil {
+		slog.Error("failed to create RabbitMQ channel: " + err.Error())
+		return
+	}
+	defer channel.Close()
+
+	queue, err := channel.QueueDeclare(
 		"nwwsoi.queue", // name
 		true,           // durable
 		false,          // delete when unused
@@ -78,8 +99,8 @@ func (server *Server) Start() {
 		return
 	}
 
-	err = server.Rabbit.QueueBind(
-		q.Name,            // queue name
+	err = channel.QueueBind(
+		queue.Name,        // queue name
 		"nwwsoi.awips",    // routing key
 		"nwwsoi.exchange", // exchange
 		false,
@@ -89,14 +110,14 @@ func (server *Server) Start() {
 		return
 	}
 
-	msgs, err := server.Rabbit.Consume(
-		q.Name, // queue
-		"",     // consumer
-		true,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
+	msgs, err := channel.Consume(
+		queue.Name, // queue
+		"",         // consumer
+		true,       // auto-ack
+		false,      // exclusive
+		false,      // no-local
+		false,      // no-wait
+		nil,        // args
 	)
 	if err != nil {
 		slog.Error("failed to register consumer: " + err.Error())
@@ -114,13 +135,7 @@ func (server *Server) Start() {
 				return
 			}
 
-			h, err := handler.New(server.DB, server.MinLog)
-			h.AddRabbit(server.Rabbit)
-			if err != nil {
-				slog.Error(err.Error())
-				return
-			}
-			go h.Handle(m.Text, m.ReceivedAt.UTC())
+			go server.HandleMessage(m.Text, m.ReceivedAt.UTC())
 		}
 	}()
 
@@ -153,45 +168,40 @@ func (server *Server) Start() {
 }
 
 // Makes a Rabbit
-func (server *Server) InitialiseRabbit() error {
+func (server *Server) initialiseRabbit() error {
 
 	conn, err := amqp.Dial(os.Getenv("RABBIT"))
 	if err != nil {
 		return fmt.Errorf("failed to connect to RabbitMQ: %s", err.Error())
 	}
 
-	server.Rabbit, err = conn.Channel()
-	if err != nil {
-		return fmt.Errorf("failed to open channel: %s", err.Error())
+	server.Rabbit = conn
+
+	server.Publishers = make(map[string]*amqp.Channel)
+	publisherConfigs := []struct {
+		Name, Type string
+	}{
+		{RealtimeExchange, "topic"},
 	}
 
-	err = server.Rabbit.ExchangeDeclare(
-		"nwwsoi.exchange", // name
-		"direct",          // type
-		true,              // durable
-		false,             // auto-deleted
-		false,             // internal
-		false,             // no-wait
-		nil,               // arguments
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare exchange: %s", err.Error())
-	}
-
-	err = server.Rabbit.ExchangeDeclare(
-		"awips.exchange", // name
-		"direct",         // type
-		true,             // durable
-		false,            // auto-deleted
-		false,            // internal
-		false,            // no-wait
-		nil,              // arguments
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare exchange: %s", err.Error())
+	for _, cfg := range publisherConfigs {
+		ch, err := newPublishingChannel(server.Rabbit, cfg.Name, cfg.Type)
+		if err != nil {
+			slog.Error("Failed to create RabbitMQ publisher", "name", cfg.Name, "error", err)
+			continue
+		}
+		server.Publishers[cfg.Name] = ch
 	}
 
 	return nil
+}
+
+func (server *Server) GetPublisher(name string) (*amqp.Channel, error) {
+	publisher, ok := server.Publishers[name]
+	if !ok {
+		return nil, fmt.Errorf("publisher %s not found", name)
+	}
+	return publisher, nil
 }
 
 func (server *Server) HeathCheck() error {

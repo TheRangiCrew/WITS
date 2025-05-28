@@ -88,33 +88,12 @@ func (logger *Logger) Save() error {
 			Message: record.Msg,
 		})
 	}
-	// _, err := surrealdb.Insert[db.Log](logger.db, "log", logs)
 
 	return nil
 }
 
-func (logger *Logger) SetProduct(id string) {
-	logger.Product = id
-
-	logger.logger = logger.logger.With("product", id)
-}
-
-func (logger *Logger) SetAWIPS(data string) {
-	logger.AWIPS = data
-
-	logger.logger = logger.logger.With("awips", data)
-}
-
-func (logger *Logger) SetWMO(data string) {
-	logger.WMO = data
-
-	logger.logger = logger.logger.With("wmo", data)
-}
-
-func (logger *Logger) SetText(data string) {
-	logger.Text = data
-
-	logger.logger = logger.logger.With("text", data)
+func (logger *Logger) With(args ...any) {
+	logger.logger = logger.logger.With(args...)
 }
 
 func (logger *Logger) addRecord(msg string, level slog.Level) {

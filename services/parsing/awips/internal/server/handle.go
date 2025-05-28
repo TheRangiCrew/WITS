@@ -1,7 +1,6 @@
-package handler
+package server
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -10,74 +9,53 @@ import (
 
 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/logger"
 	"github.com/TheRangiCrew/go-nws/pkg/awips"
-	"github.com/jackc/pgx/v5/pgxpool"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type Handler struct {
-	logger *logger.Logger
-	db     *pgxpool.Pool
-	rabbit *amqp.Channel
-	ctx    context.Context
-}
+func (server *Server) HandleMessage(text string, receivedAt time.Time) error {
+	log := logger.New(server.DB, slog.Level(server.config.MinLog))
 
-func New(db *pgxpool.Pool, minLog int) (*Handler, error) {
-
-	l := logger.New(db, slog.Level(minLog))
-
-	handler := Handler{
-		logger: &l,
-		db:     db,
-		ctx:    context.Background(),
-	}
-
-	return &handler, nil
-}
-
-// This is very similar to the go-nws AWIPS product parser. Duplicated since we need a slightly different workflow
-func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 	// Get the WMO header
 	wmo, err := awips.ParseWMO(text)
 	if err != nil {
-		handler.logger.Error(err.Error())
+		log.Error(err.Error())
 		return err
 	}
 
-	handler.logger.SetWMO(wmo.Original)
+	log.With("wmo", wmo.Original)
 
 	// TODO: Handle test communications, we can probably utilise them (WOUS99)
 	if wmo.Datatype == "WOUS99" || wmo.Datatype == "NTXX98" {
-		handler.logger.Debug("Communication test message received. Ignoring")
+		log.Debug("Communication test message received. Ignoring")
 		return nil
 	}
 
 	// Get the AWIPS header
 	awipsHeader, err := awips.ParseAWIPS(text)
 	if err != nil {
-		handler.logger.Debug(err.Error())
+		log.Debug(err.Error())
 	}
 
 	ignore := []string{"CAP", "HML"}
 	if slices.Contains(ignore, awipsHeader.Product) {
-		handler.logger.Info(fmt.Sprintf("%s product is flagged. Ignoring", awipsHeader.Product))
+		log.Info(fmt.Sprintf("%s product is flagged. Ignoring", awipsHeader.Product))
 		return nil
 	}
 
 	if awipsHeader.Original == "" {
-		handler.logger.Info("AWIPS header not found. Product will not be stored.")
+		log.Info("AWIPS header not found. Product will not be stored.")
 		return nil
 	} else {
-		handler.logger.SetAWIPS(awipsHeader.Original)
+		log.With("awips", awipsHeader.Original)
 	}
 
 	// Find the issue time
 	issued, err := awips.GetIssuedTime(text)
 	if err != nil {
-		handler.logger.Error(err.Error())
+		log.Error(err.Error())
 		return err
 	}
 	if issued.IsZero() {
-		handler.logger.Info("Product does not contain issue date. Defaulting to now (UTC)")
+		log.Info("Product does not contain issue date. Defaulting to now (UTC)")
 		issued = time.Now().UTC()
 	}
 
@@ -96,7 +74,7 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 
 		ugc, err := awips.ParseUGC(segment)
 		if err != nil {
-			handler.logger.Error(err.Error())
+			log.Error(err.Error())
 			continue
 		}
 		expires := time.Now().UTC()
@@ -112,27 +90,27 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 		vtec, e := awips.ParseVTEC(segment)
 		if len(e) != 0 {
 			for _, er := range e {
-				handler.logger.Error(er.Error())
+				log.Error(er.Error())
 			}
 			continue
 		}
 
 		latlon, err := awips.ParseLatLon(segment)
 		if err != nil {
-			handler.logger.Error(err.Error())
+			log.Error(err.Error())
 			continue
 		}
 
 		tags, e := awips.ParseTags(segment)
 		if len(e) != 0 {
 			for _, er := range e {
-				handler.logger.Error(er.Error())
+				log.Error(er.Error())
 			}
 		}
 
 		tml, err := awips.ParseTML(segment, issued)
 		if err != nil {
-			handler.logger.Warn("failed to parse TML: " + err.Error())
+			log.Warn("failed to parse TML: " + err.Error())
 		}
 
 		segments = append(segments, awips.TextProductSegment{
@@ -162,40 +140,20 @@ func (handler *Handler) Handle(text string, receivedAt time.Time) error {
 	}
 
 	if product.AWIPS.Original == "SWOMCD" {
-		err := handler.mcd(product, receivedAt)
+		err := server.mcd(product, receivedAt)
 		if err != nil {
-			handler.logger.Error("error processing mcd: " + err.Error())
+			log.Error("error processing mcd: " + err.Error())
 			return err
 		}
 	}
 
 	if product.HasVTEC() {
-		handler.vtec(product, receivedAt)
+		server.vtec(product, receivedAt)
 	}
 
-	err = handler.logger.Save()
+	err = log.Save()
 	if err != nil {
 		slog.Error("error saving logs to database", "error", err.Error())
 	}
 	return err
-
 }
-
-func (handler *Handler) AddRabbit(rabbit *amqp.Channel) {
-	handler.rabbit = rabbit
-}
-
-// func appendContext(parent context.Context, attr slog.Attr) context.Context {
-// 	if parent == nil {
-// 		parent = context.Background()
-// 	}
-
-// 	if v, ok := parent.Value(slogFields).([]slog.Attr); ok {
-// 		v = append(v, attr)
-// 		return context.WithValue(parent, slogFields, v)
-// 	} else {
-// 		v := []slog.Attr{}
-// 		v = append(v, attr)
-// 		return context.WithValue(parent, slogFields, v)
-// 	}
-// }
