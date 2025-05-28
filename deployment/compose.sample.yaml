@@ -58,6 +58,19 @@ services:
     networks:
       - wits
 
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - wits
+
+
   # ingest/nwws
   nwws:
     depends_on:
