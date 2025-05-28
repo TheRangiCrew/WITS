@@ -1,4 +1,4 @@
-package handler
+package server
 
 import (
 	"context"
@@ -24,7 +24,7 @@ type TextProduct struct {
 	BBB        string     `json:"bbb"`
 }
 
-func (handler *Handler) TextProduct(product *awips.TextProduct, receivedAt time.Time) (*TextProduct, error) {
+func (server *Server) TextProduct(product *awips.TextProduct, receivedAt time.Time) (*TextProduct, error) {
 
 	id := fmt.Sprintf("%s-%s-%s-%s", product.Issued.UTC().Format("200601021504"), product.Office, product.WMO.Datatype, product.AWIPS.Original)
 
@@ -43,7 +43,7 @@ func (handler *Handler) TextProduct(product *awips.TextProduct, receivedAt time.
 		BBB:        product.WMO.BBB,
 	}
 
-	rows, err := handler.db.Query(context.Background(), `
+	rows, err := server.DB.Query(context.Background(), `
 	INSERT INTO awips.products (product_id, received_at, issued, source, data, wmo, awips, bbb) VALUES
 	($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at;
 	`, id, receivedAt, product.Issued, product.AWIPS.WFO, product.Text, product.WMO.Datatype, product.AWIPS.Original, product.WMO.BBB)

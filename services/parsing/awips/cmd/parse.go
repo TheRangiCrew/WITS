@@ -1,54 +1,54 @@
 package cmd
 
-import (
-	"fmt"
-	"log/slog"
-	"os"
+// import (
+// 	"fmt"
+// 	"log/slog"
+// 	"os"
 
-	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/server"
-	"github.com/joho/godotenv"
-	"github.com/spf13/cobra"
-)
+// 	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/server"
+// 	"github.com/joho/godotenv"
+// 	"github.com/spf13/cobra"
+// )
 
-func init() {
-	rootCmd.AddCommand(parseCmd)
-	parseCmd.Flags().IntVar(&Log, "minlog", 0, "The minimum logging level to use")
-	parseCmd.Flags().StringVar(&DotEnv, "loadenv", "", "The application will try and initialise a .env file for you")
+// func init() {
+// 	rootCmd.AddCommand(parseCmd)
+// 	parseCmd.Flags().IntVar(&Log, "minlog", 0, "The minimum logging level to use")
+// 	parseCmd.Flags().StringVar(&DotEnv, "loadenv", "", "The application will try and initialise a .env file for you")
 
-}
+// }
 
-var parseCmd = &cobra.Command{
-	Use:   "parse",
-	Short: "Parses provided AWIPS products",
-	Long: `Given a file or directory, the AWIPS products will attempt to be parsed.
-	This is mainly for testing.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			fmt.Printf("Need 1 argument. %d were provided. Please provide a filename.\n", len(args))
-			return
-		}
+// var parseCmd = &cobra.Command{
+// 	Use:   "parse",
+// 	Short: "Parses provided AWIPS products",
+// 	Long: `Given a file or directory, the AWIPS products will attempt to be parsed.
+// 	This is mainly for testing.`,
+// 	Run: func(cmd *cobra.Command, args []string) {
+// 		if len(args) < 1 {
+// 			fmt.Printf("Need 1 argument. %d were provided. Please provide a filename.\n", len(args))
+// 			return
+// 		}
 
-		if len(args) > 1 {
-			fmt.Printf("Need 1 argument. %d were provided. You can only provide a filename.\n", len(args))
-			return
-		}
+// 		if len(args) > 1 {
+// 			fmt.Printf("Need 1 argument. %d were provided. You can only provide a filename.\n", len(args))
+// 			return
+// 		}
 
-		if DotEnv != "" {
-			godotenv.Load(DotEnv)
-		}
+// 		if DotEnv != "" {
+// 			godotenv.Load(DotEnv)
+// 		}
 
-		filename := args[0]
+// 		filename := args[0]
 
-		data, err := os.ReadFile(filename)
-		if err != nil {
-			slog.Error(err.Error())
-			return
-		}
+// 		data, err := os.ReadFile(filename)
+// 		if err != nil {
+// 			slog.Error(err.Error())
+// 			return
+// 		}
 
-		text := string(data)
+// 		text := string(data)
 
-		slog.Info(fmt.Sprintf("Parsing %s", filename))
+// 		slog.Info(fmt.Sprintf("Parsing %s", filename))
 
-		server.ParseText(text, Log)
-	},
-}
+// 		server.ParseText(text, Log)
+// 	},
+// }

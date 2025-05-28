@@ -3,7 +3,7 @@ module github.com/TheRangiCrew/WITS/services/parsing/awips
 go 1.24.3
 
 require (
-	github.com/TheRangiCrew/go-nws v0.0.0-20250525101338-7489b0ede78c
+	github.com/TheRangiCrew/go-nws v0.0.0-20250527211710-3389187432d3
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/rabbitmq/amqp091-go v1.10.0
