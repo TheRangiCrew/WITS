@@ -1,41 +1,23 @@
 package server
 
-import (
-	"fmt"
-	"log/slog"
-	"os"
-	"time"
+// func ParseText(text string, minLog int) {
 
-	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/handler"
-)
+// 	config := ServerConfig{
+// 		MinLog: minLog,
+// 	}
 
-func ParseText(filename string, minLog int) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
+// 	server, err := New(config)
+// 	if err != nil {
+// 		slog.Error(err.Error())
+// 		return
+// 	}
 
-	text := string(data)
+// 	h, err := handler.New(server.DB, server.MinLog)
+// 	if err != nil {
+// 		slog.Error(err.Error())
+// 		return
+// 	}
 
-	config := ServerConfig{
-		MinLog: minLog,
-	}
+// 	h.Handle(text, time.Now())
 
-	server, err := New(config)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	h, err := handler.New(server.DB, server.MinLog)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	slog.Info(fmt.Sprintf("Parsing %s", filename))
-
-	h.Handle(text, time.Now())
-
-}
+// }

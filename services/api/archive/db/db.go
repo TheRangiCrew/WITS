@@ -11,6 +11,8 @@ import (
 	pgxgeos "github.com/twpayne/pgx-geos"
 )
 
+var DB = &pgxpool.Pool{}
+
 func New() (*pgxpool.Pool, error) {
 	ctx := context.Background()
 

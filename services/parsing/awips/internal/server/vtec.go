@@ -1,11 +1,13 @@
-package handler
+package server
 
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
-	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/handler/util"
+	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/logger"
+	"github.com/TheRangiCrew/WITS/services/parsing/awips/internal/util"
 	"github.com/TheRangiCrew/go-nws/pkg/awips"
 	"github.com/jackc/pgx/v5"
 	"github.com/twpayne/go-geos"
@@ -34,6 +36,7 @@ type VTECEvent struct {
 	PolygonStart *geos.Geom
 }
 
+// VTEC UGC Relation
 type VTECUGC struct {
 	ID           int       `json:"id"`
 	CreatedAt    time.Time `json:"created_at,omitempty"`
@@ -94,6 +97,7 @@ type VTECUpdate struct {
 	SnowSquallTag string
 }
 
+// Raw VTEC
 type VTEC struct {
 	Class        string `json:"class"`
 	Action       string `json:"action"`
@@ -106,41 +110,49 @@ type VTEC struct {
 }
 
 type vtecHandler struct {
-	*Handler
-	event   *VTECEvent
-	product TextProduct
-	segment awips.TextProductSegment
-	vtec    awips.VTEC
+	*Server                          // The parent handler
+	event   *VTECEvent               // The event
+	product TextProduct              // The event's product
+	segment awips.TextProductSegment // The product segment
+	vtec    awips.VTEC               // The raw VTEC
 	ugc     []struct {
 		ID  int
 		UGC string
 	}
+	logger *logger.Logger
 }
 
-func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
+// Parse and upload or update a VTEC product
+func (server *Server) vtec(product *awips.TextProduct, receivedAt time.Time) {
+	log := logger.New(server.DB, slog.Level(server.config.MinLog))
 
-	textProduct, err := handler.TextProduct(product, receivedAt)
+	// Parse the text product
+	textProduct, err := server.TextProduct(product, receivedAt)
 	if err != nil {
-		handler.logger.Error(err.Error())
+		log.Error(err.Error())
 		return
 	}
 
-	handler.logger.SetProduct(textProduct.ProductID)
+	// Set the text product's ID in the logger
+	log.With("product", textProduct.ProductID)
 
 	// Process each segment separately since they reference different UGC areas
 	for i, segment := range product.Segments {
 
+		// This segment does not have a VTEC so we can skip it
 		if len(segment.VTEC) == 0 {
-			handler.logger.Info(fmt.Sprintf("Product %s segment %d does not have VTECs. Skipping...", textProduct.ProductID, i))
+			log.Info(fmt.Sprintf("Product %s segment %d does not have VTECs. Skipping...", textProduct.ProductID, i))
 			continue
 		}
 
 		// Go through each VTEC in the segment and process it
 		for _, vtec := range segment.VTEC {
+			// Skip test and routine products to save on resources
 			if vtec.Class == "T" || vtec.Action == "ROU" {
 				continue
 			}
 
+			// 	TODO: Rethink this because it is not going to work during the new year.
 			var year int
 			if vtec.Start != nil {
 				year = vtec.Start.Year()
@@ -151,25 +163,35 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 			var event *VTECEvent
 
 			vh := vtecHandler{
-				Handler: handler,
+				Server:  server,
 				product: *textProduct,
 				segment: segment,
 				event:   event,
 				vtec:    vtec,
+				logger:  &log,
 			}
 
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
 			// Lets check if the VTEC Event is already in the database
-			// Find the event
-			rows, err := handler.db.Query(handler.db.CTX, `
-			SELECT * FROM vtec_event WHERE
+			rows, err := server.DB.Query(ctx, `
+			SELECT * FROM vtec.events WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, vtec.WFO, vtec.Phenomena, vtec.Significance, vtec.EventNumber, year)
 			if err != nil {
-				handler.logger.Error("failed to get vtec_event: " + err.Error())
+				log.Error("failed to get vtec_event: " + err.Error())
 				continue
 			}
+			defer rows.Close()
 
+			// If the event is not already there then create the event for the first time
 			if !rows.Next() {
+				if rows.Err() != nil {
+					log.Error("failed to get vtec_event: " + rows.Err().Error())
+					continue
+				}
+
 				// The database needs a start and end time but VTECs may not have one.
 				if vtec.Start == nil {
 					// Use the issue time for the start time
@@ -180,12 +202,14 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 					vtec.End = &segment.Expires
 				}
 
+				// Create the polygon if there is one.
 				var polygon *geos.Geom
 				if segment.LatLon != nil {
 					p := util.PolygonFromAwips(*segment.LatLon.Polygon)
-					polygon = &p
+					polygon = p
 				}
 
+				// Build the event
 				event = &VTECEvent{
 					Issued:       product.Issued,
 					Starts:       *vtec.Start,
@@ -204,24 +228,29 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 					PolygonStart: polygon,
 				}
 
-				_, err := handler.db.Exec(context.Background(), `
-				INSERT INTO vtec_event(issued, starts, expires, ends, end_initial, class, phenomena, wfo, 
+				// Insert the event
+				_, err := server.DB.Exec(context.Background(), `
+				INSERT INTO vtec.events(issued, starts, expires, ends, end_initial, class, phenomena, wfo, 
 				significance, event_number, year, title, is_emergency, is_pds, polygon_start) VALUES
 				($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);
 				`, event.Issued, event.Starts, event.Expires, event.Ends, event.EndInitial, event.Class,
 					event.Phenomena, event.WFO, event.Significance, event.EventNumber, event.Year, event.Title,
 					event.IsEmergency, event.IsPDS, event.PolygonStart)
-
 				if err != nil {
-					handler.logger.Error(fmt.Sprintf("failed to create vtec_event: %s", err.Error()))
+					log.Error(fmt.Sprintf("failed to create vtec_event: %s", err.Error()))
 					continue
 				}
 
 				vh.event = event
 
-				vh.create()
-
+				err = vh.handle()
+				if err != nil {
+					log.Error(err.Error())
+					return
+				}
+				vh.update()
 			} else {
+				// Get the event from the row
 				event = &VTECEvent{}
 				err = rows.Scan(
 					&event.ID,
@@ -244,73 +273,64 @@ func (handler *Handler) vtec(product *awips.TextProduct, receivedAt time.Time) {
 					&event.PolygonStart)
 
 				if err != nil {
-					handler.logger.Error("failed to scan vtec_event: " + err.Error())
+					log.Error("failed to scan vtec_event: " + err.Error())
 				}
 
 				vh.event = event
 
+				err = vh.handle()
+				if err != nil {
+					log.Error(err.Error())
+					return
+				}
 				vh.update()
 			}
 		}
 	}
 }
 
-func (handler *vtecHandler) create() {
+func (handler *vtecHandler) handle() error {
 	handler.updateTimes()
 
 	err := handler.segmentUGC()
 	if err != nil {
 		handler.logger.Warn("failed to retrieve UGCs for VTEC segment: " + err.Error())
-		return
+		return err
 	}
 
 	err = handler.createUpdates()
 	if err != nil {
 		handler.logger.Warn(fmt.Sprintf("failed to create updates for VTEC event for %s: %s", handler.vtec.Original, err.Error()))
-		return
+		return err
 	}
 
-	err = handler.relateUGC()
-	if err != nil {
-		handler.logger.Warn(fmt.Sprintf("failed to create ugc relation for VTEC event for %s: %s", handler.vtec.Original, err.Error()))
-		return
+	switch handler.vtec.Action {
+	case "NEW", "EXB", "EXA":
+		err = handler.ugcNEW()
+	case "COR":
+		err = handler.ugcCOR()
+	case "CAN", "UPG", "EXT":
+		err = handler.ugcCAN()
+	case "CON", "EXP", "ROU":
+		err = handler.ugcCON()
 	}
+
+	if err != nil {
+		handler.logger.Error("failed to handle UGC relations: "+err.Error(), "vtec")
+	}
+
+	return nil
 }
 
 func (handler *vtecHandler) update() {
 	vtec := handler.vtec
 	segment := handler.segment
 
-	handler.updateTimes()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	err := handler.segmentUGC()
-	if err != nil {
-		handler.logger.Warn("failed to retrieve UGCs for VTEC segment: " + err.Error())
-		return
-	}
-
-	err = handler.createUpdates()
-	if err != nil {
-		handler.logger.Warn(fmt.Sprintf("failed to create updates for VTEC event for %s: %s", handler.vtec.Original, err.Error()))
-		return
-	}
-
-	if vtec.Action == "EXA" || vtec.Action == "EXB" {
-		err := handler.relateUGC()
-		if err != nil {
-			handler.logger.Warn(fmt.Sprintf("failed to create ugc relation for VTEC event for %s: %s", handler.vtec.Original, err.Error()))
-			return
-		}
-	} else {
-		err := handler.updateUGC()
-		if err != nil {
-			handler.logger.Warn(fmt.Sprintf("failed to update ugc relation for VTEC event for %s: %s", handler.vtec.Original, err.Error()))
-			return
-		}
-	}
-
-	_, err = handler.db.Exec(handler.db.CTX, `
-	UPDATE vtec_event SET updated_at = CURRENT_TIMESTAMP, is_emergency = $6, is_pds = $7 WHERE
+	_, err := handler.DB.Exec(ctx, `
+	UPDATE vtec.events SET updated_at = CURRENT_TIMESTAMP, is_emergency = $6, is_pds = $7 WHERE
 			wfo = $1 AND phenomena = $2 AND significance = $3 AND event_number = $4 AND year = $5
 			`, vtec.WFO, vtec.Phenomena, vtec.Significance, vtec.EventNumber, handler.event.Year, segment.IsEmergency(), segment.IsPDS())
 	if err != nil {
@@ -374,18 +394,24 @@ func (handler *vtecHandler) createUpdates() error {
 	var polygon *geos.Geom
 	if segment.LatLon != nil {
 		p := util.PolygonFromAwips(*segment.LatLon.Polygon)
-		polygon = &p
+		polygon = p
 	}
 
 	var direction *int
-	var location *geos.Geom
+	var locations *geos.Geom
 	var speed *int
 	var speedText *string
 	var tmlTime *time.Time
 	if segment.TML != nil {
 		direction = &segment.TML.Direction
-		point := geos.NewPoint(segment.TML.Location[:])
-		location = point
+
+		points := []*geos.Geom{}
+		for _, location := range segment.TML.Locations {
+			point := geos.NewPoint(location[:])
+			points = append(points, point)
+		}
+		locations = geos.NewCollection(geos.TypeIDMultiPoint, points)
+
 		speed = &segment.TML.Speed
 		speedText = &segment.TML.SpeedString
 		tmlTime = &segment.TML.Time
@@ -411,7 +437,7 @@ func (handler *vtecHandler) createUpdates() error {
 			IsPDS:         segment.IsPDS(),
 			Polygon:       polygon,
 			Direction:     direction,
-			Location:      location,
+			Location:      locations,
 			Speed:         speed,
 			SpeedText:     speedText,
 			TMLTime:       tmlTime,
@@ -431,9 +457,9 @@ func (handler *vtecHandler) createUpdates() error {
 		},
 	}
 
-	_, err := handler.db.CopyFrom(
+	_, err := handler.DB.CopyFrom(
 		context.Background(),
-		pgx.Identifier{"vtec_update"},
+		pgx.Identifier{"vtec", "updates"},
 		[]string{"issued", "starts", "expires", "ends", "text", "product", "wfo", "action", "class", "phenomena", "significance", "event_number", "year", "title", "is_emergency", "is_pds", "polygon", "direction", "location", "speed", "speed_text", "tml_time", "ugc", "tornado", "damage", "hail_threat", "hail_tag", "wind_threat", "wind_tag", "flash_flood", "rainfall_tag", "flood_tag_dam", "spout_tag", "snow_squall", "snow_squall_tag"},
 		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
 			return []any{
@@ -445,12 +471,15 @@ func (handler *vtecHandler) createUpdates() error {
 		return err
 	}
 
-	handler.warning(rows[0])
+	err = handler.warning(rows[0])
+	if err != nil {
+		handler.logger.Error("failed to insert/update warning to the database: "+err.Error(), "vtec", vtec)
+	}
 
 	return nil
 }
 
-func (handler *vtecHandler) relateUGC() error {
+func (handler *vtecHandler) ugcNEW() error {
 	event := handler.event
 	product := handler.product
 	vtec := handler.vtec
@@ -471,9 +500,55 @@ func (handler *vtecHandler) relateUGC() error {
 		end = *vtec.End
 	}
 
-	rows := []VTECUGC{}
+	relations := []VTECUGC{}
 	for _, ugc := range handler.ugc {
-		rows = append(rows, VTECUGC{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		rows, err := handler.DB.Query(ctx, `
+		SELECT * FROM vtec.ugcs WHERE year = $1 AND wfo = $2 AND phenomena = $3 AND
+		significance = $4 AND event_number = $5 AND ugc = $6 AND
+		action NOT IN ('CAN', 'UPG') AND expires > $7`,
+			event.Year, event.WFO, event.Phenomena, event.Significance, event.EventNumber, ugc.ID, expires)
+
+		if err != nil {
+			handler.logger.Error("failed to get existing ugc relation: "+err.Error(), "vtec", vtec.Original)
+			continue
+		}
+
+		duplicates := 0
+		deleted := 0
+		for rows.Next() {
+			if product.isCorrection() {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				// Delete the old UGC record
+				_, err = handler.DB.Exec(ctx, `
+				DELETE vtec.ugcs WHERE year = $1 AND wfo = $2 AND phenomena = $3 AND
+		significance = $4 AND event_number = $5 AND ugc = $6 AND
+		action NOT IN ('NEW', 'EXB', 'EXA')`,
+					event.Year, event.WFO, event.Phenomena, event.Significance, event.EventNumber, ugc.ID)
+
+				if err != nil {
+					handler.logger.Error("failed to delete duplicate UGC: "+err.Error(), "vtec", vtec.Original, "ugc", ugc.UGC)
+					continue
+				}
+
+				deleted++
+			} else {
+				duplicates++
+			}
+		}
+
+		if deleted > 0 {
+			handler.logger.Warn(fmt.Sprintf("Deleted %d deuplicate UGC relations", deleted), "vtec", vtec.Original, "ugc", ugc.UGC)
+		}
+		if duplicates > 0 {
+			handler.logger.Warn(fmt.Sprintf("%d duplicate UGC relations found", duplicates), "vtec", vtec.Original, "ugc", ugc.UGC)
+		}
+
+		relations = append(relations, VTECUGC{
 			WFO:          event.WFO,
 			Phenomena:    event.Phenomena,
 			Significance: event.Significance,
@@ -489,21 +564,36 @@ func (handler *vtecHandler) relateUGC() error {
 		})
 	}
 
-	_, err := handler.db.CopyFrom(
-		handler.db.CTX,
-		pgx.Identifier{"vtec_ugc"},
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := handler.DB.CopyFrom(
+		ctx,
+		pgx.Identifier{"vtec", "ugcs"},
 		[]string{"wfo", "phenomena", "significance", "event_number", "ugc", "issued", "starts", "expires", "ends",
 			"end_initial", "action", "year"},
-		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
-			return []any{rows[i].WFO, rows[i].Phenomena, rows[i].Significance, rows[i].EventNumber, rows[i].UGC,
-				rows[i].Issued, rows[i].Starts, rows[i].Expires, rows[i].Ends, rows[i].EndInitial, rows[i].Action,
-				rows[i].Year}, nil
+		pgx.CopyFromSlice(len(relations), func(i int) ([]any, error) {
+			return []any{relations[i].WFO, relations[i].Phenomena, relations[i].Significance, relations[i].EventNumber, relations[i].UGC,
+				relations[i].Issued, relations[i].Starts, relations[i].Expires, relations[i].Ends, relations[i].EndInitial, relations[i].Action,
+				relations[i].Year}, nil
 		}))
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (handler *vtecHandler) ugcCOR() error {
+	return handler.updateUGC()
+}
+
+func (handler *vtecHandler) ugcCAN() error {
+	return handler.updateUGC()
+}
+
+func (handler *vtecHandler) ugcCON() error {
+	return handler.updateUGC()
 }
 
 func (handler *vtecHandler) updateUGC() error {
@@ -519,8 +609,11 @@ func (handler *vtecHandler) updateUGC() error {
 		ugcs = append(ugcs, ugc.ID)
 	}
 
-	_, err := handler.db.Exec(handler.db.CTX, `
-	UPDATE vtec_ugc SET expires = $1, ends = $2, action = $3 WHERE
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := handler.DB.Exec(ctx, `
+	UPDATE vtec.ugcs SET expires = $1, ends = $2, action = $3 WHERE
 	wfo = $4 AND phenomena = $5 AND significance = $6 AND event_number = $7 AND year = $8
 	AND ugc = ANY($9)
 	`, expires, end, vtec.Action, event.WFO, event.Phenomena, event.Significance, event.EventNumber,
@@ -545,13 +638,17 @@ func (handler *vtecHandler) segmentUGC() error {
 				isFire = true
 			}
 			if area == "000" || area == "ALL" {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
 				// Find all UGC codes from the state
-				rows, err := handler.db.Query(handler.db.CTX, `
-				SELECT ugc FROM ugc WHERE state = $1 AND type = $2 AND is_fire = $3 AND valid_to IS NULL;
+				rows, err := handler.DB.Query(ctx, `
+				SELECT ugc FROM postgis.ugcs WHERE state = $1 AND type = $2 AND is_fire = $3 AND valid_to IS NULL;
 				`, state.ID, state.Type, isFire)
 				if err != nil {
 					return fmt.Errorf("error retrieving ALL ugc: %s", err.Error())
 				}
+				defer rows.Close()
 
 				for rows.Next() {
 					var id string
@@ -560,6 +657,9 @@ func (handler *vtecHandler) segmentUGC() error {
 						return err
 					}
 					ids = append(ids, id)
+				}
+				if rows.Err() != nil {
+					return fmt.Errorf("error retrieving ALL ugc: %s", rows.Err().Error())
 				}
 
 				if len(ids) == 0 {
@@ -573,12 +673,16 @@ func (handler *vtecHandler) segmentUGC() error {
 		}
 	}
 
-	rows, err := handler.db.Query(handler.db.CTX, `
-	SELECT id, ugc FROM ugc WHERE ugc = ANY($1) AND valid_to IS NULL
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := handler.DB.Query(ctx, `
+	SELECT id, ugc FROM postgis.ugcs WHERE ugc = ANY($1) AND valid_to IS NULL
 	`, ids)
 	if err != nil {
 		return fmt.Errorf("error retrieving listed ugcs: %s", err.Error())
 	}
+	defer rows.Close()
 
 	ugcs := []struct {
 		ID  int
@@ -594,6 +698,9 @@ func (handler *vtecHandler) segmentUGC() error {
 			return fmt.Errorf("error scanning ugcs: %s", err.Error())
 		}
 		ugcs = append(ugcs, ugc)
+	}
+	if rows.Err() != nil {
+		return fmt.Errorf("error scanning ugcs: %s", rows.Err().Error())
 	}
 
 	handler.ugc = ugcs

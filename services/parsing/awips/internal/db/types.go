@@ -49,16 +49,3 @@ type Log struct {
 	Text      string     `json:"text,omitempty"`
 	Message   string     `json:"message"`
 }
-
-type MCD struct {
-	ID               int        `json:"id,omitempty"`
-	CreatedAt        *time.Time `json:"created_at,omitempty"`
-	UpdatedAt        *time.Time `json:"updated_at,omitempty"`
-	Product          int        `json:"product"`
-	Issued           *time.Time `json:"issued"`
-	Expires          *time.Time `json:"expires"`
-	Year             int        `json:"year"`
-	Concerning       string     `json:"concerning"`
-	Geom             *geos.Geom `json:"geom"`
-	WatchProbability int        `json:"watch_probability"`
-}

@@ -1,4 +1,4 @@
-INSERT INTO public.state (id, name, fips, is_offshore) VALUES
+INSERT INTO postgis.states (id, name, fips, is_offshore) VALUES
     ('AK', 'Alaska', '02', false),
     ('AL', 'Alabama', '01', false),
     ('AR', 'Arkansas', '05', false),
